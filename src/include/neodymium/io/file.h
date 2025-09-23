@@ -1,15 +1,19 @@
 #pragma once
 
+#include <neodymium/io/node.h>
 #include <neodymium/mm/buf.h>
+#include <sdk-io/path.h>
 #include <sdk-io/seek.h>
 #include <sdk-io/traits.h>
 #include <sdk-meta/flags.h>
 #include <sdk-meta/rc.h>
 #include <sdk-meta/res.h>
+#include <sdk-meta/time.h>
 #include <sdk-text/str.h>
 
 namespace Sys::Io {
 
+using Sdk::Io::Path;
 using Sdk::Io::Seek;
 using Sdk::Io::Whence;
 
@@ -61,13 +65,18 @@ enum struct FileMode {
     Truncate
 };
 
-struct FileHandle {
+struct FileHandle : Sdk::Io::Reader, Sdk::Io::Writer, Sdk::Io::Seeker {
     Rc<Io::File> const file;
-    usize              offset;
+    Seek               offset;
 };
 
-struct File {
-    Str name;
+struct File : public Node {
+    Str      name;
+    Path     path;
+    usize    size;
+    DateTime created;
+    DateTime modified;
+    DateTime accessed;
 
     virtual ~File() = default;
 
