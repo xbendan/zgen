@@ -1,0 +1,40 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**"
+            ],
+            "defines": [],
+            "compilerPath": "clang",
+            "intelliSenseMode": "linux-clang-x64"
+        },
+        {
+            "name": "Kernel.x86_64",
+            "includePath": [
+                "${workspaceFolder}/libs/*",
+                "${workspaceFolder}/src/include/*"
+            ],
+            "defines": [
+                "KCorePmmUseBits"
+            ],
+            "compilerPath": "clang++",
+            "intelliSenseMode": "clang-x64",
+            "cppStandard": "c++23",
+            "cStandard": "c23"
+        },
+        {
+            "name": "UiKit",
+            "includePath": [
+                "${workspaceFolder}/libs/*",
+                "${workspaceFolder}/libs/dex/include/*"
+            ],
+            "defines": [],
+            "compilerPath": "clang++",
+            "intelliSenseMode": "clang-x64",
+            "cppStandard": "c++23",
+            "cStandard": "c23"
+        }
+    ],
+    "version": 4
+}
