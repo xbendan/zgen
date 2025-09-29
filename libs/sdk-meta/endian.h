@@ -15,7 +15,7 @@ inline u128 _bswap128(u128 value) {
 
 template <typename T>
     requires(sizeof(T) <= 16)
-always_inline constexpr T bswap(T value) {
+[[gnu::always_inline]] constexpr T bswap(T value) {
 #ifdef __SIZEOF_INT128__
     if (sizeof(T) == 16)
         return _bswap128(value);
@@ -32,24 +32,24 @@ always_inline constexpr T bswap(T value) {
 
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 template <typename T>
-always_inline constexpr T toLe(T value) {
+[[gnu::always_inline]] constexpr T toLe(T value) {
     return value;
 }
 #else
 template <typename T>
-always_inline constexpr T toLe(T value) {
+[[gnu::always_inline]] constexpr T toLe(T value) {
     return bswap(value);
 }
 #endif
 
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 template <typename T>
-always_inline constexpr T toBe(T value) {
+[[gnu::always_inline]] constexpr T toBe(T value) {
     return bswap(value);
 }
 #else
 template <typename T>
-always_inline constexpr T toBe(T value) {
+[[gnu::always_inline]] constexpr T toBe(T value) {
     return value;
 }
 #endif
@@ -74,34 +74,34 @@ template <typename T>
 struct [[gnu::packed]] Be {
     T _value;
 
-    always_inline constexpr Be() = default;
+    [[gnu::always_inline]] constexpr Be() = default;
 
-    always_inline constexpr Be(T value) : _value(toBe(value)) { }
+    [[gnu::always_inline]] constexpr Be(T value) : _value(toBe(value)) { }
 
-    always_inline constexpr operator T() const { return value(); }
+    [[gnu::always_inline]] constexpr operator T() const { return value(); }
 
-    always_inline constexpr Bytes bytes() const {
+    [[gnu::always_inline]] constexpr Bytes bytes() const {
         return Bytes((u8 const*) &_value, sizeof(T));
     }
 
-    always_inline constexpr T value() const { return toBe(_value); }
+    [[gnu::always_inline]] constexpr T value() const { return toBe(_value); }
 };
 
 template <typename T>
 struct [[gnu::packed]] Le {
     T _value;
 
-    always_inline constexpr Le() = default;
+    [[gnu::always_inline]] constexpr Le() = default;
 
-    always_inline constexpr Le(T value) : _value(toLe(value)) { }
+    [[gnu::always_inline]] constexpr Le(T value) : _value(toLe(value)) { }
 
-    always_inline constexpr operator T() const { return value(); }
+    [[gnu::always_inline]] constexpr operator T() const { return value(); }
 
-    always_inline constexpr Bytes bytes() const {
+    [[gnu::always_inline]] constexpr Bytes bytes() const {
         return Bytes((u8 const*) &_value, sizeof(T));
     }
 
-    always_inline constexpr T value() const { return toLe(_value); }
+    [[gnu::always_inline]] constexpr T value() const { return toLe(_value); }
 };
 
 static_assert(sizeof(Be<u32>) == sizeof(u32));

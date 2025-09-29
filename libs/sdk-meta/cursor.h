@@ -11,57 +11,66 @@ struct Cursor {
 
     constexpr Cursor() = default;
 
-    always_inline constexpr Cursor(Empty) : Cursor() { }
+    [[gnu::always_inline]] constexpr Cursor(Empty) : Cursor() { }
 
-    always_inline constexpr Cursor(T const* ptr) : Cursor(ptr, ptr ? 1 : 0) { }
+    [[gnu::always_inline]] constexpr Cursor(T const* ptr)
+        : Cursor(ptr, ptr ? 1 : 0) { }
 
-    always_inline constexpr Cursor(T const* ptr, usize len)
+    [[gnu::always_inline]] constexpr Cursor(T const* ptr, usize len)
         : _begin(const_cast<T*>(ptr)),
           _end(const_cast<T*>(ptr) + len) {
         if (_begin == nullptr and _begin != _end) [[unlikely]]
             panic("null pointer with non-zero length");
     }
 
-    always_inline constexpr Cursor(T const* begin, T const* end)
+    [[gnu::always_inline]] constexpr Cursor(T const* begin, T const* end)
         : Cursor(begin, end - begin) { }
 
-    always_inline constexpr Cursor(Sliceable<T> auto& slice)
+    [[gnu::always_inline]] constexpr Cursor(Sliceable<T> auto& slice)
         : Cursor { begin(slice), end(slice) } { }
 
-    always_inline constexpr Cursor(Slice<T> slice)
+    [[gnu::always_inline]] constexpr Cursor(Slice<T> slice)
         : Cursor { begin(slice), end(slice) } { }
 
-    always_inline constexpr T const& operator[](usize i) const {
+    [[gnu::always_inline]] constexpr T const& operator[](usize i) const {
         if (i >= len()) [[unlikely]]
             panic("index out of bounds");
         return _begin[i];
     }
 
-    always_inline constexpr T& operator[](usize i) {
+    [[gnu::always_inline]] constexpr T& operator[](usize i) {
         if (i >= len()) [[unlikely]]
             panic("index out of bounds");
         return const_cast<T&>(_begin[i]);
     }
 
-    always_inline constexpr operator T*() { return _begin; }
+    [[gnu::always_inline]] constexpr operator T*() { return _begin; }
 
-    always_inline constexpr operator T const*() const { return _begin; }
+    [[gnu::always_inline]] constexpr operator T const*() const {
+        return _begin;
+    }
 
-    always_inline constexpr bool ended() const { return _begin >= _end; }
+    [[gnu::always_inline]] constexpr bool ended() const {
+        return _begin >= _end;
+    }
 
-    always_inline constexpr usize rem() const { return _end - _begin; }
+    [[gnu::always_inline]] constexpr usize rem() const { return _end - _begin; }
 
-    always_inline constexpr T const& peek(usize i = 0) const {
+    [[gnu::always_inline]] constexpr T const& peek(usize i = 0) const {
         if (i >= len()) [[unlikely]]
             panic("index out of bounds");
         return _begin[i];
     }
 
-    always_inline constexpr T const& operator*() const { return peek(); }
+    [[gnu::always_inline]] constexpr T const& operator*() const {
+        return peek();
+    }
 
-    always_inline constexpr T const* operator->() const { return &peek(); }
+    [[gnu::always_inline]] constexpr T const* operator->() const {
+        return &peek();
+    }
 
-    always_inline constexpr T const& next() {
+    [[gnu::always_inline]] constexpr T const& next() {
         if (ended()) [[unlikely]]
             panic("next() called on ended cursor");
 
@@ -70,7 +79,7 @@ struct Cursor {
         return r;
     }
 
-    always_inline constexpr Slice<T> next(usize n) {
+    [[gnu::always_inline]] constexpr Slice<T> next(usize n) {
         if (n > rem()) [[unlikely]]
             panic("next() called on ended cursor");
 
@@ -80,7 +89,7 @@ struct Cursor {
     }
 
     template <Meta::Equatable<T> U>
-    always_inline constexpr bool skip(U const& c) {
+    [[gnu::always_inline]] constexpr bool skip(U const& c) {
         if (ended()) [[unlikely]]
             return false;
 
@@ -92,7 +101,7 @@ struct Cursor {
         return false;
     }
 
-    always_inline constexpr bool put(T c) {
+    [[gnu::always_inline]] constexpr bool put(T c) {
         if (_begin == _end) {
             return true;
         }
@@ -101,13 +110,13 @@ struct Cursor {
         return false;
     }
 
-    always_inline constexpr T* buf() { return _begin; }
+    [[gnu::always_inline]] constexpr T* buf() { return _begin; }
 
-    always_inline constexpr T const* buf() const { return _begin; }
+    [[gnu::always_inline]] constexpr T const* buf() const { return _begin; }
 
-    always_inline constexpr usize len() const { return _end - _begin; }
+    [[gnu::always_inline]] constexpr usize len() const { return _end - _begin; }
 
-    always_inline constexpr Bytes bytes() const {
+    [[gnu::always_inline]] constexpr Bytes bytes() const {
         return Bytes { _begin, _end };
     }
 

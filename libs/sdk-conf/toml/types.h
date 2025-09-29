@@ -21,7 +21,7 @@ struct Object {
     Inner _inner;
 
     template <Meta::Contains<usize, double, bool, Str, Array> T>
-    always_inline constexpr Res<T> as() const {
+    [[gnu::always_inline]] constexpr Res<T> as() const {
         if (not _inner.template is<T>()) [[unlikely]] {
             return Error::invalidData("Object::as: type mismatch");
         }

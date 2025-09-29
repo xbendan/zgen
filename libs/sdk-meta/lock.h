@@ -58,9 +58,11 @@ template <Lockable L = Lock>
 struct LockScoped : private Meta::Pinned {
     L& _lock;
 
-    always_inline LockScoped(L& lock) : _lock(lock) { _lock.acquire(); }
+    [[gnu::always_inline]] LockScoped(L& lock) : _lock(lock) {
+        _lock.acquire();
+    }
 
-    always_inline ~LockScoped() { _lock.release(); }
+    [[gnu::always_inline]] ~LockScoped() { _lock.release(); }
 };
 
 template <Lockable L>

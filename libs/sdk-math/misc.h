@@ -20,7 +20,7 @@ static bool isPrime(T candidate) {
 }
 
 template <Meta::Integral T>
-always_inline constexpr T nextPrime(T min) {
+[[gnu::always_inline]] constexpr T nextPrime(T min) {
 
     for (auto prime : _::primes) {
         if (prime >= min)

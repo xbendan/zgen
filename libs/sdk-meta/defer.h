@@ -9,9 +9,9 @@ template <typename F>
 struct Defer : Meta::Pinned {
     F _f;
 
-    always_inline Defer(F f) : _f(f) { }
+    [[gnu::always_inline]] Defer(F f) : _f(f) { }
 
-    always_inline ~Defer() { _f(); }
+    [[gnu::always_inline]] ~Defer() { _f(); }
 };
 
 template <typename F>
@@ -25,16 +25,16 @@ struct ArmedDefer : Meta::Uncopyable {
     F    _f;
     bool _armed = true;
 
-    always_inline ArmedDefer(F f) : _f(f) { }
+    [[gnu::always_inline]] ArmedDefer(F f) : _f(f) { }
 
-    always_inline ~ArmedDefer() {
+    [[gnu::always_inline]] ~ArmedDefer() {
         if (_armed)
             _f();
     }
 
-    always_inline void disarm() { _armed = false; }
+    [[gnu::always_inline]] void disarm() { _armed = false; }
 
-    always_inline void arm() { _armed = true; }
+    [[gnu::always_inline]] void arm() { _armed = true; }
 };
 
 template <typename F>
