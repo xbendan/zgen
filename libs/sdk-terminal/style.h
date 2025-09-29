@@ -100,44 +100,44 @@ struct Formatter<Sdk::Cli::Style> {
 
     Res<> format(Io::TextWriter& writer, Sdk::Cli::Style const& val) {
         if (val.decos == TextDecoration::None) {
-            writer.writeStr("\x1b[0m"s);
+            try$(writer.writeStr("\x1b[0m"s));
             return Ok();
         }
 
         if (val._fg < 0x10) {
-            Text::format(writer,
-                         (val._fg & 0x8) ? "\x1b[{}m"s : "\x1b[{};1m"s,
-                         30 + (val._fg & 0x7));
+            try$(Text::format(writer,
+                              (val._fg & 0x8) ? "\x1b[{}m"s : "\x1b[{};1m"s,
+                              30 + (val._fg & 0x7)));
         }
 
         if (val._bg < 0x10) {
-            Text::format(writer,
-                         (val._bg & 0x8) ? "\x1b[{}m"s : "\x1b[{};1m"s,
-                         40 + (val._bg & 0x7));
+            try$(Text::format(writer,
+                              (val._bg & 0x8) ? "\x1b[{}m"s : "\x1b[{};1m"s,
+                              40 + (val._bg & 0x7)));
         }
 
         if (val.decos & TextDecoration::Bold) {
-            Text::format(writer, "\x1b[1m"s);
+            try$(Text::format(writer, "\x1b[1m"s));
         }
 
         if (val.decos & TextDecoration::Dim) {
-            Text::format(writer, "\x1b[2m"s);
+            try$(Text::format(writer, "\x1b[2m"s));
         }
 
         if (val.decos & TextDecoration::Underline) {
-            Text::format(writer, "\x1b[4m"s);
+            try$(Text::format(writer, "\x1b[4m"s));
         }
 
         if (val.decos & TextDecoration::Blink) {
-            Text::format(writer, "\x1b[5m"s);
+            try$(Text::format(writer, "\x1b[5m"s));
         }
 
         if (val.decos & TextDecoration::Reverse) {
-            Text::format(writer, "\x1b[7m"s);
+            try$(Text::format(writer, "\x1b[7m"s));
         }
 
         if (val.decos & TextDecoration::Hidden) {
-            Text::format(writer, "\x1b[8m"s);
+            try$(Text::format(writer, "\x1b[8m"s));
         }
 
         return Ok();
