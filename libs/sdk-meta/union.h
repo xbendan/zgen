@@ -16,46 +16,48 @@ struct Union {
     alignas(max(sizeof(Ts)...)) char _buf[max(sizeof(Ts)...)];
     u8 _index;
 
-    always_inline Union()
+    [[gnu::always_inline]] Union()
         requires(Meta::Contains<Empty, Ts...>)
         : Union(Empty {}) { }
 
     template <Meta::Contains<Ts...> T>
-    always_inline Union(T const& value) : _index(Meta::indexOf<T, Ts...>()) {
+    [[gnu::always_inline]] Union(T const& value)
+        : _index(Meta::indexOf<T, Ts...>()) {
         new (_buf) T(value);
     }
 
     template <Meta::Contains<Ts...> T>
-    always_inline Union(T&& value) : _index(Meta::indexOf<T, Ts...>()) {
+    [[gnu::always_inline]] Union(T&& value)
+        : _index(Meta::indexOf<T, Ts...>()) {
         new (_buf) T(move(value));
     }
 
-    always_inline Union(Union const& other) : _index(other._index) {
+    [[gnu::always_inline]] Union(Union const& other) : _index(other._index) {
         Meta::indexCast<Ts...>(
             _index, other._buf, [this]<typename T>(T const& ptr) {
             new (_buf) T(ptr);
         });
     }
 
-    always_inline Union(Union&& other) : _index(other._index) {
+    [[gnu::always_inline]] Union(Union&& other) : _index(other._index) {
         Meta::indexCast<Ts...>(_index, other._buf, [this]<typename T>(T& ptr) {
             new (_buf) T(move(ptr));
         });
     }
 
-    always_inline ~Union() {
+    [[gnu::always_inline]] ~Union() {
         Meta::indexCast<Ts...>(
             _index, _buf, []<typename T>(T& ptr) { ptr.~T(); });
     }
 
     template <Meta::Contains<Ts...> T>
-    always_inline Union& operator=(T const& value) {
+    [[gnu::always_inline]] Union& operator=(T const& value) {
         *this = Union(value);
         return *this;
     }
 
     template <Meta::Contains<Ts...> T>
-    always_inline Union& operator=(T&& value) {
+    [[gnu::always_inline]] Union& operator=(T&& value) {
         Meta::indexCast<Ts...>(
             _index, _buf, []<typename U>(U& ptr) { ptr.~U(); });
 
@@ -65,12 +67,12 @@ struct Union {
         return *this;
     }
 
-    always_inline Union& operator=(Union const& other) {
+    [[gnu::always_inline]] Union& operator=(Union const& other) {
         *this = Union(other);
         return *this;
     }
 
-    always_inline Union& operator=(Union&& other) {
+    [[gnu::always_inline]] Union& operator=(Union&& other) {
         Meta::indexCast<Ts...>(
             _index, _buf, []<typename T>(T& ptr) { ptr.~T(); });
 
@@ -84,7 +86,8 @@ struct Union {
     }
 
     template <Meta::Contains<Ts...> T>
-    always_inline T& unwrap(char const* msg = "unwrapping wrong type") {
+    [[gnu::always_inline]] T& unwrap(char const* msg
+                                     = "unwrapping wrong type") {
         if (_index != Meta::indexOf<T, Ts...>()) [[unlikely]]
             panic(msg);
 
@@ -92,8 +95,8 @@ struct Union {
     }
 
     template <Meta::Contains<Ts...> T>
-    always_inline T const& unwrap(char const* msg
-                                  = "unwrapping wrong type") const {
+    [[gnu::always_inline]] T const& unwrap(char const* msg
+                                           = "unwrapping wrong type") const {
         if (_index != Meta::indexOf<T, Ts...>()) [[unlikely]]
             panic(msg);
 
@@ -101,7 +104,7 @@ struct Union {
     }
 
     template <Meta::Contains<Ts...> T>
-    always_inline T const& unwrapOr(T const& fallback) const {
+    [[gnu::always_inline]] T const& unwrapOr(T const& fallback) const {
         if (_index != Meta::indexOf<T, Ts...>())
             return fallback;
 
@@ -109,7 +112,7 @@ struct Union {
     }
 
     template <typename T, typename... Args>
-    always_inline T& emplace(Args&&... args) {
+    [[gnu::always_inline]] T& emplace(Args&&... args) {
         if (_index != Meta::indexOf<T, Ts...>()) {
             Meta::indexCast<Ts...>(
                 _index, _buf, []<typename U>(U& ptr) { ptr.~U(); });
@@ -121,39 +124,41 @@ struct Union {
     }
 
     template <Meta::Contains<Ts...> T>
-    always_inline T take(char const* msg = "taking wrong type") {
+    [[gnu::always_inline]] T take(char const* msg = "taking wrong type") {
         if (_index != Meta::indexOf<T, Ts...>())
             panic(msg);
         return move(*reinterpret_cast<T*>(_buf));
     }
 
-    always_inline auto visit(auto visitor) {
+    [[gnu::always_inline]] auto visit(auto visitor) {
         return Meta::indexCast<Ts...>(_index, _buf, visitor);
     }
 
-    always_inline auto visit(auto visitor) const {
+    [[gnu::always_inline]] auto visit(auto visitor) const {
         return Meta::indexCast<Ts...>(_index, _buf, visitor);
     }
 
-    static always_inline auto any(auto visitor) { return any<Ts...>(visitor); }
+    [[gnu::always_inline]] static auto any(auto visitor) {
+        return any<Ts...>(visitor);
+    }
 
     // template <Meta::Contains<Ts...> T>
-    // always_inline MutCursor<T> is() {
+    // [[gnu::always_inline]] MutCursor<T> is() {
     //     if (_index != Meta::indexOf<T, Ts...>())
     //         return nullptr;
     //     return (T*) _buf;
     // }
 
     template <Meta::Contains<Ts...> T>
-    always_inline Cursor<T> is() const {
+    [[gnu::always_inline]] Cursor<T> is() const {
         if (_index != Meta::indexOf<T, Ts...>())
             return nullptr;
         return (T const*) _buf;
     }
 
-    always_inline usize index() const { return _index; }
+    [[gnu::always_inline]] usize index() const { return _index; }
 
-    always_inline bool valid() const { return _index < sizeof...(Ts); }
+    [[gnu::always_inline]] bool valid() const { return _index < sizeof...(Ts); }
 
     template <Meta::Contains<Ts...> T>
     std::partial_ordering operator<=>(T const& other) const {

@@ -1,8 +1,5 @@
 #pragma once
 
-#define always_inline __attribute__((always_inline))
-// #define packed        __attribute__((packed))
-
 using u8   = unsigned char;
 using u16  = unsigned short;
 using u32  = unsigned int;
@@ -33,7 +30,7 @@ using nullptr_t = decltype(nullptr);
 
 // using FlatPtr = void*;
 
-struct FlatPtr {
+struct [[gnu::packed]] FlatPtr {
     FlatPtr() = default;
 
     FlatPtr(uptr ptr) : m_ptr(reinterpret_cast<void*>(ptr)) { }
