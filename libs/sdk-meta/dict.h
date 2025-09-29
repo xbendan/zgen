@@ -6,6 +6,7 @@
 #include <sdk-meta/opt.h>
 #include <sdk-meta/rc.h>
 #include <sdk-meta/tuple.h>
+#include <sdk-meta/utility.h>
 #include <sdk-meta/vec.h>
 
 namespace Sdk {
@@ -34,9 +35,19 @@ struct Dict {
     usize      _released;
 
     struct Subscript {
-        K const& key;
-        Dict&    table;
-        Opt<V*>  value;
+        K const&      key;
+        Dict&         table;
+        Opt<V const*> value;
+
+        V const& operator=(V const& val) {
+            if (value) {
+                *const_cast<V*>(*value) = val;
+            } else {
+                table.put(key, val);
+                value = table.get(key);
+            }
+            return *value.take();
+        }
     };
 
     Dict(usize cap = defaultCapacity)
@@ -56,16 +67,34 @@ struct Dict {
         i32 hashCode = ::hash(key) & 0x7FFF'FFFF;
         for (i32 i = _buckets[hashCode % _buckets.len()]; //
              i >= 0;
-             i = _entries[i]) {
+             i = _entries[i]._next) {
             if ((_entries[i]._hashCode == hashCode)
-                and (key == _entries[i]._pair.v1)) {
+                and (key == _entries[i]._key)) {
                 return i;
             }
         }
         return Empty {};
     }
 
-    Subscript operator[](K const& key) const { }
+    Subscript operator[](K const& key) {
+        auto opt = find(key);
+        if (opt) {
+            return Subscript { .key   = key,
+                               .table = *this,
+                               .value = &_entries[*opt]._value };
+        }
+        return Subscript { .key = key, .table = *this, .value = {} };
+    }
+
+    Subscript const operator[](K const& key) const {
+        auto opt = find(key);
+        if (opt) {
+            return Subscript { .key   = key,
+                               .table = *(Dict*) this,
+                               .value = &_entries[*opt]._value };
+        }
+        return Subscript { .key = key, .table = *(Dict*) this, .value = {} };
+    }
 
     bool contains(K const& key) const { return find(key); }
 
@@ -74,7 +103,7 @@ struct Dict {
         return opt and (_entries[*opt]._value == pair.v2);
     }
 
-    void resize() { resize(Math::nextPrime(_buckets.len() * 2)); }
+    void resize() { resize(Math::nextPrime(_buckets.len() * 2), true); }
 
     void resize(usize cap, bool newHashCodes) {
         if (cap < _buckets.len()) {
@@ -127,7 +156,7 @@ struct Dict {
         }
     }
 
-    void put(K const& key, V const& value) {
+    void put(K const& key, V&& value) {
         i32 hashCode = ::hash(key) & 0x7FFF'FFFF;
         u32 bucketId = hashCode % _buckets.len();
 
@@ -135,7 +164,7 @@ struct Dict {
         for (i32 i = _buckets[bucketId]; i >= 0; i = _entries[i]._next) {
             if ((_entries[i]._hashCode == hashCode)
                 and (key == _entries[i]._key)) {
-                new (&_entries[i]._value) V(::move(value));
+                new (&_entries[i]._value) V(::forward<V>(value));
                 _version++;
                 return;
             }
@@ -143,24 +172,26 @@ struct Dict {
         }
 
         auto index = next();
-        if (not index) [[unlikely]] {
+        if (not index or index == -1) [[unlikely]] {
             panic("Dict::putIfAbsent(): No available index for new entry");
         }
         bucketId = hashCode % _buckets.len();
 
-        new (&_entries[index]) Entry {
+        new (&_entries[*index]) Entry {
             ._hashCode = hashCode,
             ._next     = _buckets[bucketId],
             ._key      = ::move(key),
-            ._value    = ::move(value),
+            ._value    = ::forward<V>(value),
         };
-        _buckets[bucketId] = index;
+        _buckets[bucketId] = *index;
         _version++;
 
         if (coll > collisionThreshold) {
             resize();
         }
-    };
+    }
+
+    void put(K const& key, V const& value) { put(key, ::move(value)); };
 
     void putIfAbsent(K const& key, V const& value) {
         if (find(key)) {
@@ -243,13 +274,13 @@ struct Dict {
         _version++;
     }
 
-    Opt<V*> get(K const& key) const {
+    Opt<V const*> get(K const& key) const {
         auto elem = find(key);
 
         if (not elem) {
             return {};
         }
-        return &_entries[*elem]._value;
+        return &(_entries[elem.unwrap()]._value);
     }
 
     Opt<V> take(K const& key) {
@@ -264,9 +295,15 @@ struct Dict {
         return value;
     }
 
-    bool remove(K const& key) { }
+    bool remove(K const& key) {
+        // TODO: implement
+        return false;
+    }
 
-    bool remove(K const& key, V const& value) { }
+    bool remove(K const& key, V const& value) {
+        // TODO: implement
+        return false;
+    }
 
     usize count() const { return _count - _released; }
 
@@ -284,15 +321,14 @@ struct Dict {
     }
 
     auto iter() {
-        return Iter(
-            [this, i = 0uz, v = _version] mutable -> Opt<Cursor<Inner>> {
+        return Iter([this, i = 0uz, v = _version] mutable -> Opt<Entry&> {
             if (v != _version) {
                 panic("Dict::iter(): Dict modified during iteration");
             }
             while (i < _entries.len()) {
                 auto& entry = _entries[i++];
                 if (entry._hashCode >= 0) {
-                    return Cursor({ entry._pair._key, entry._pair._value });
+                    return &entry;
                 }
             }
             return {};
