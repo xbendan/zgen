@@ -17,69 +17,79 @@ struct Range {
         return (a < b) ? Range { a, b - a } : Range { b, a - b };
     }
 
-    always_inline constexpr Range() = default;
+    [[gnu::always_inline]] constexpr Range() = default;
 
-    always_inline constexpr explicit Range(T start)
+    [[gnu::always_inline]] constexpr explicit Range(T start)
         : _start(start),
           _size(0) { }
 
-    always_inline constexpr Range(T start, Size size)
+    [[gnu::always_inline]] constexpr Range(T start, Size size)
         : _start(start),
           _size(size) { }
 
-    always_inline constexpr T end() const { return _start + _size; }
+    [[gnu::always_inline]] constexpr T end() const { return _start + _size; }
 
-    always_inline constexpr T endsAt(T val) {
+    [[gnu::always_inline]] constexpr T endsAt(T val) {
         if (val >= _start) {
             _size = val - _start;
         }
         return end();
     }
 
-    always_inline constexpr bool isEmpty() const { return _size == 0; }
+    [[gnu::always_inline]] constexpr bool isEmpty() const { return _size == 0; }
 
-    always_inline constexpr bool contains(T val) const {
+    [[gnu::always_inline]] constexpr bool contains(T val) const {
         return val >= _start && val < end();
     }
 
-    always_inline constexpr bool contains(Range other) const {
+    [[gnu::always_inline]] constexpr bool contains(Range other) const {
         return other._start >= _start && other.end() <= end();
     }
 
-    always_inline constexpr bool contigousWith(Range other) const {
+    [[gnu::always_inline]] constexpr bool contigousWith(Range other) const {
         return other._start == end() || _start == other.end();
     }
 
-    always_inline constexpr bool overlaps(Range other) const {
+    [[gnu::always_inline]] constexpr bool overlaps(Range other) const {
         return other._start < end() && _start < other.end();
     }
 
-    always_inline constexpr Range merge(Range other) const {
+    [[gnu::always_inline]] constexpr Range merge(Range other) const {
         return from( //
             min(_start, other._start),
             max(end(), other.end()));
     }
 
-    always_inline constexpr bool aligned(T align) const {
+    [[gnu::always_inline]] constexpr Range take(Size size) {
+        if (size > _size)
+            size = _size;
+        Range r { _start, size };
+        _start += size;
+        _size -= size;
+        return r;
+    }
+
+    [[gnu::always_inline]] constexpr bool aligned(T align) const {
         return isAlign(_start, align) && isAlign(_size, align);
     }
 
-    always_inline constexpr Range slice(Size offset, Size length) const {
+    [[gnu::always_inline]] constexpr Range slice(Size offset,
+                                                 Size length) const {
         return { _start + offset, length };
     }
 
-    always_inline constexpr Range slice(Size offset) const {
+    [[gnu::always_inline]] constexpr Range slice(Size offset) const {
         return { _start + offset, _size - offset };
     }
 
     template <typename U>
-    always_inline constexpr Range<U> cast() const {
+    [[gnu::always_inline]] constexpr Range<U> cast() const {
         return { static_cast<U>(_start),
                  static_cast<typename Range<U>::Size>(_size) };
     }
 
     template <typename U>
-    always_inline constexpr U into() const {
+    [[gnu::always_inline]] constexpr U into() const {
         return U { _start, _size };
     }
 
