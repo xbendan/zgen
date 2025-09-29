@@ -15,14 +15,16 @@ static constexpr Rune BackSpace      = U'\b';
 static constexpr Rune Unknown        = U'�';
 
 template <typename T>
-concept StaticEncoding
-    = requires(T t, Rune& r, typename T::Unit u, Cursor<typename T::Unit>& c,
-               Cursor<typename T::Unit>& m) {
-          { T::unitLen(u) } -> Meta::Same<usize>;
-          { T::runeLen(r) } -> Meta::Same<usize>;
-          { T::decodeUnit(r, c) } -> Meta::Same<bool>;
-          { T::encodeUnit(Rune {}, m) } -> Meta::Same<bool>;
-      };
+concept StaticEncoding = requires(T                         t,
+                                  Rune&                     r,
+                                  typename T::Unit          u,
+                                  Cursor<typename T::Unit>& c,
+                                  Cursor<typename T::Unit>& m) {
+    { T::unitLen(u) } -> Meta::Same<usize>;
+    { T::runeLen(r) } -> Meta::Same<usize>;
+    { T::decodeUnit(r, c) } -> Meta::Same<bool>;
+    { T::encodeUnit(Rune {}, m) } -> Meta::Same<bool>;
+};
 
 template <typename U, usize N>
 struct _Multiple {
@@ -31,21 +33,25 @@ struct _Multiple {
 
     InlineBuf<Unit, N> _buf {};
 
-    always_inline void put(Unit u) { _buf.emplace(_buf.len(), u); }
+    [[gnu::always_inline]] void put(Unit u) { _buf.emplace(_buf.len(), u); }
 
-    always_inline constexpr Unit& operator[](usize i) { return _buf[i]; }
-
-    always_inline constexpr Unit const& operator[](usize i) const {
+    [[gnu::always_inline]] constexpr Unit& operator[](usize i) {
         return _buf[i];
     }
 
-    always_inline always_inline constexpr Unit* buf() { return _buf.buf(); }
+    [[gnu::always_inline]] constexpr Unit const& operator[](usize i) const {
+        return _buf[i];
+    }
 
-    always_inline constexpr Unit const* buf() const { return _buf.buf(); }
+    [[gnu::always_inline]] constexpr Unit* buf() { return _buf.buf(); }
 
-    always_inline constexpr usize len() const { return _buf.len(); }
+    [[gnu::always_inline]] constexpr Unit const* buf() const {
+        return _buf.buf();
+    }
 
-    always_inline constexpr usize rem() const { return N - len(); }
+    [[gnu::always_inline]] constexpr usize len() const { return _buf.len(); }
+
+    [[gnu::always_inline]] constexpr usize rem() const { return N - len(); }
 };
 
 template <typename U>
@@ -55,23 +61,25 @@ struct _Single {
 
     Unit _buf;
 
-    always_inline _Single() = default;
+    [[gnu::always_inline]] _Single() = default;
 
-    always_inline _Single(Unit u) : _buf(u) { }
+    [[gnu::always_inline]] _Single(Unit u) : _buf(u) { }
 
-    always_inline void put(Unit u) { _buf = u; }
+    [[gnu::always_inline]] void put(Unit u) { _buf = u; }
 
-    always_inline operator Unit() { return _buf; }
+    [[gnu::always_inline]] operator Unit() { return _buf; }
 
-    always_inline constexpr Unit& operator[](usize) { return _buf; }
+    [[gnu::always_inline]] constexpr Unit& operator[](usize) { return _buf; }
 
-    always_inline constexpr Unit const& operator[](usize) const { return _buf; }
+    [[gnu::always_inline]] constexpr Unit const& operator[](usize) const {
+        return _buf;
+    }
 
-    always_inline constexpr Unit* buf() { return &_buf; }
+    [[gnu::always_inline]] constexpr Unit* buf() { return &_buf; }
 
-    always_inline constexpr Unit const* buf() const { return &_buf; }
+    [[gnu::always_inline]] constexpr Unit const* buf() const { return &_buf; }
 
-    always_inline constexpr usize len() const { return 1; }
+    [[gnu::always_inline]] constexpr usize len() const { return 1; }
 };
 
 template <typename T, typename U>
@@ -91,7 +99,7 @@ struct Utf8 {
     using Unit = char;
     using One  = _Multiple<Unit, 4>;
 
-    static always_inline constexpr usize unitLen(Unit first) {
+    [[gnu::always_inline]] static constexpr usize unitLen(Unit first) {
         if ((first & 0xf8) == 0xf0)
             return 4;
         else if ((first & 0xf0) == 0xe0)
@@ -102,7 +110,7 @@ struct Utf8 {
             return 1;
     }
 
-    static always_inline constexpr usize runeLen(Rune rune) {
+    [[gnu::always_inline]] static constexpr usize runeLen(Rune rune) {
         if (rune <= 0x7f)
             return 1;
         else if (rune <= 0x7ff)
@@ -113,8 +121,8 @@ struct Utf8 {
             return 4;
     }
 
-    static always_inline bool decodeUnit(Rune&                   result,
-                                         DecodeInput<Unit> auto& in) {
+    [[gnu::always_inline]] static bool decodeUnit(Rune& result,
+                                                  DecodeInput<Unit> auto& in) {
         if (in.rem() == 0) {
             result = U'�';
             return false;
@@ -145,7 +153,7 @@ struct Utf8 {
         return true;
     }
 
-    static always_inline bool encodeUnit(Rune c, EncodeOutput<Unit> auto& out) {
+    static inline bool encodeUnit(Rune c, EncodeOutput<Unit> auto& out) {
         if (unitLen(c) > out.rem()) [[unlikely]]
             panic("bad");
 
@@ -171,7 +179,7 @@ struct Utf8 {
     }
 };
 
-inline static Utf8 UTF8;
+static inline Utf8 UTF8 [[maybe_unused]];
 
 static_assert(StaticEncoding<Utf8>);
 
@@ -181,22 +189,22 @@ struct Utf16 {
     using Unit = u16;
     using One  = _Multiple<Unit, 2>;
 
-    static always_inline constexpr usize unitLen(Unit first) {
+    [[gnu::always_inline]] static constexpr usize unitLen(Unit first) {
         if (first >= 0xd800 and first <= 0xdbff)
             return 2;
         else
             return 1;
     }
 
-    static always_inline constexpr usize runeLen(Rune rune) {
+    [[gnu::always_inline]] static constexpr usize runeLen(Rune rune) {
         if (rune <= 0xffff)
             return 1;
         else
             return 2;
     }
 
-    static always_inline bool decodeUnit(Rune&                   result,
-                                         DecodeInput<Unit> auto& in) {
+    [[gnu::always_inline]] static bool decodeUnit(Rune& result,
+                                                  DecodeInput<Unit> auto& in) {
         Unit first = in.next();
 
         if (unitLen(first) > in.rem()) {
@@ -223,7 +231,9 @@ struct Utf16 {
         return true;
     }
 
-    static always_inline bool encodeUnit(Rune c, EncodeOutput<Unit> auto& out) {
+    [[gnu::always_inline]] static bool encodeUnit(
+        Rune                     c,
+        EncodeOutput<Unit> auto& out) {
         if (c <= 0xffff) {
             out.put(c);
             return true;
@@ -237,7 +247,7 @@ struct Utf16 {
     }
 };
 
-inline static Utf16 UTF16;
+static inline Utf16 UTF16 [[maybe_unused]];
 
 static_assert(StaticEncoding<Utf16>);
 
@@ -247,23 +257,25 @@ struct Utf32 {
     using Unit = char32_t;
     using One  = _Single<Unit>;
 
-    static always_inline constexpr usize unitLen(Unit) { return 1; }
+    [[gnu::always_inline]] static constexpr usize unitLen(Unit) { return 1; }
 
-    static always_inline constexpr usize runeLen(Rune) { return 1; }
+    [[gnu::always_inline]] static constexpr usize runeLen(Rune) { return 1; }
 
-    static always_inline bool decodeUnit(Rune&                   result,
-                                         DecodeInput<Unit> auto& in) {
+    [[gnu::always_inline]] static bool decodeUnit(Rune& result,
+                                                  DecodeInput<Unit> auto& in) {
         result = in.next();
         return true;
     }
 
-    static always_inline bool encodeUnit(Rune c, EncodeOutput<Unit> auto& out) {
+    [[gnu::always_inline]] static bool encodeUnit(
+        Rune                     c,
+        EncodeOutput<Unit> auto& out) {
         out.put(c);
         return true;
     }
 };
 
-inline static Utf32 UTF32;
+static inline Utf32 UTF32 [[maybe_unused]];
 
 static_assert(StaticEncoding<Utf32>);
 
@@ -273,12 +285,12 @@ struct Ascii {
     using Unit = char;
     using One  = _Single<Unit>;
 
-    static always_inline constexpr usize unitLen(Unit) { return 1; }
+    [[gnu::always_inline]] static constexpr usize unitLen(Unit) { return 1; }
 
-    static always_inline constexpr usize runeLen(Rune) { return 1; }
+    [[gnu::always_inline]] static constexpr usize runeLen(Rune) { return 1; }
 
-    static always_inline bool decodeUnit(Rune&                   result,
-                                         DecodeInput<Unit> auto& in) {
+    [[gnu::always_inline]] static bool decodeUnit(Rune& result,
+                                                  DecodeInput<Unit> auto& in) {
         auto c = in.next();
         if (c >= 0) {
             result = c;
@@ -289,7 +301,9 @@ struct Ascii {
         }
     }
 
-    static always_inline bool encodeUnit(Rune c, EncodeOutput<Unit> auto& out) {
+    [[gnu::always_inline]] static bool encodeUnit(
+        Rune                     c,
+        EncodeOutput<Unit> auto& out) {
         if (c < 0) {
             out.put('?');
             return false;
@@ -300,7 +314,7 @@ struct Ascii {
     }
 };
 
-inline static Ascii ASCII;
+static inline Ascii ASCII [[maybe_unused]];
 
 static_assert(StaticEncoding<Ascii>);
 
@@ -311,18 +325,20 @@ struct EAscii {
     using Unit = u8;
     using One  = _Single<Unit>;
 
-    static always_inline constexpr usize unitLen(Unit) { return 1; }
+    [[gnu::always_inline]] static constexpr usize unitLen(Unit) { return 1; }
 
-    static always_inline constexpr usize runeLen(Rune) { return 1; }
+    [[gnu::always_inline]] static constexpr usize runeLen(Rune) { return 1; }
 
-    static always_inline bool decodeUnit(Rune&                   result,
-                                         DecodeInput<Unit> auto& in) {
+    [[gnu::always_inline]] static bool decodeUnit(Rune& result,
+                                                  DecodeInput<Unit> auto& in) {
         Mapper mapper;
         result = mapper(in.next());
         return true;
     }
 
-    static always_inline bool encodeUnit(Rune c, EncodeOutput<Unit> auto& out) {
+    [[gnu::always_inline]] static bool encodeUnit(
+        Rune                     c,
+        EncodeOutput<Unit> auto& out) {
         Mapper mapper;
         for (usize i = 0; i <= 255; i++) {
             if (mapper(i) == c) {

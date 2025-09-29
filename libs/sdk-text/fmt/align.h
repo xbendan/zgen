@@ -2,7 +2,6 @@
 
 #include <sdk-io/text.h>
 #include <sdk-meta/res.h>
-#include <sdk-meta/try.h>
 #include <sdk-meta/types.h>
 #include <sdk-text/fmt/base.h>
 #include <sdk-text/runes.h>

@@ -13,38 +13,38 @@ struct _Str : Slice<U> {
     using Unit     = U;
     using Inner    = U;
 
-    always_inline constexpr _Str() = default;
+    [[gnu::always_inline]] constexpr _Str() = default;
 
-    always_inline constexpr _Str(U const* cstr)
+    [[gnu::always_inline]] constexpr _Str(U const* cstr)
         requires(Meta::Same<U, char>)
         : Slice<U>(cstr, strlen(cstr)) { }
 
-    always_inline constexpr _Str(U const* buf, usize len)
+    [[gnu::always_inline]] constexpr _Str(U const* buf, usize len)
         : Slice<U>(buf, len) { }
 
-    always_inline constexpr _Str(U const* begin, U const* end)
+    [[gnu::always_inline]] constexpr _Str(U const* begin, U const* end)
         : Slice<U>(begin, end - begin) { }
 
-    always_inline constexpr _Str(Sliceable<U> auto const& other)
+    [[gnu::always_inline]] constexpr _Str(Sliceable<U> auto const& other)
         : Slice<U>(other.buf(), other.len()) { }
 
-    always_inline constexpr auto operator<=>(U const* cstr) const
+    [[gnu::always_inline]] constexpr auto operator<=>(U const* cstr) const
         requires(Meta::Same<U, char>)
     {
         return *this <=> _Str(cstr);
     }
 
-    always_inline constexpr bool operator==(U const* cstr) const
+    [[gnu::always_inline]] constexpr bool operator==(U const* cstr) const
         requires(Meta::Same<U, char>)
     {
         return *this == _Str(cstr);
     }
 
-    always_inline constexpr explicit operator bool() const noexcept {
+    [[gnu::always_inline]] constexpr explicit operator bool() const noexcept {
         return this->_len > 0;
     }
 
-    always_inline constexpr auto it() {
+    [[gnu::always_inline]] constexpr auto it() {
         Cursor<U> cursor(*this);
         return Iter([cursor] mutable -> Opt<Rune> {
             if (cursor.ended()) {
@@ -70,9 +70,9 @@ struct _String {
     Unit* _buf { nullptr };
     usize _len { 0 };
 
-    always_inline constexpr _String() = delete;
+    [[gnu::always_inline]] constexpr _String() = delete;
 
-    always_inline constexpr _String(Unit const* buf, usize len)
+    [[gnu::always_inline]] constexpr _String(Unit const* buf, usize len)
         requires(Meta::Same<Unit, char>)
         : _len(len) {
         if (_buf == nullptr or len == 0) [[unlikely]] {
@@ -85,20 +85,20 @@ struct _String {
         _buf      = temp;
     }
 
-    always_inline constexpr _String(Unit const* cstr)
+    [[gnu::always_inline]] constexpr _String(Unit const* cstr)
         requires(Meta::Same<Unit, char>)
         : _String(cstr, strlen(cstr)) { }
 
-    always_inline constexpr _String(_Str<E> str)
+    [[gnu::always_inline]] constexpr _String(_Str<E> str)
         : _String(str.buf(), str.len()) { }
 
-    always_inline _String(Sliceable<Unit> auto const& other)
+    [[gnu::always_inline]] _String(Sliceable<Unit> auto const& other)
         : _String(other.buf(), other.len()) { }
 
-    always_inline _String(_String const& other)
+    [[gnu::always_inline]] _String(_String const& other)
         : _String(other._buf, other._len) { }
 
-    always_inline _String(_String&& other)
+    [[gnu::always_inline]] _String(_String&& other)
         : _buf(Meta::exchange(other._buf, nullptr)),
           _len(Meta::exchange(other._len, 0)) { }
 
@@ -109,42 +109,46 @@ struct _String {
         }
     }
 
-    always_inline _String& operator=(_String const& other) {
+    [[gnu::always_inline]] _String& operator=(_String const& other) {
         *this = _String(other);
         return *this;
     }
 
-    always_inline _String& operator=(_String&& other) {
+    [[gnu::always_inline]] _String& operator=(_String&& other) {
         Meta::swap(_buf, other._buf);
         Meta::swap(_len, other._len);
         return *this;
     }
 
-    always_inline _Str<E> str() const { return *this; }
+    [[gnu::always_inline]] _Str<E> str() const { return *this; }
 
-    always_inline Unit const& operator[](usize i) const {
+    [[gnu::always_inline]] Unit const& operator[](usize i) const {
         if (i >= _len) [[unlikely]]
             panic("index out of bounds");
         return buf()[i];
     }
 
-    always_inline Unit const* buf() const { return _len ? _buf : _EMPTY.buf(); }
+    [[gnu::always_inline]] Unit const* buf() const {
+        return _len ? _buf : _EMPTY.buf();
+    }
 
-    always_inline usize len() const { return _len; }
+    [[gnu::always_inline]] usize len() const { return _len; }
 
-    always_inline auto operator<=>(Unit const* cstr) const
+    [[gnu::always_inline]] auto operator<=>(Unit const* cstr) const
         requires(Meta::Same<Unit, char>)
     {
         return str() <=> _Str<E>(cstr);
     }
 
-    always_inline bool operator==(Unit const* cstr) const
+    [[gnu::always_inline]] bool operator==(Unit const* cstr) const
         requires(Meta::Same<Unit, char>)
     {
         return str() == _Str<E>(cstr);
     }
 
-    always_inline constexpr explicit operator bool() const { return _len > 0; }
+    [[gnu::always_inline]] constexpr explicit operator bool() const {
+        return _len > 0;
+    }
 };
 
 using String = _String<Sys::Encoding>;

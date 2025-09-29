@@ -1,6 +1,7 @@
 #pragma once
 
 #include <sdk-io/text.h>
+#include <sdk-meta/id.h>
 #include <sdk-meta/rc.h>
 #include <sdk-text/fmt/base.h>
 #include <sdk-text/fmt/nums.h>
@@ -17,7 +18,7 @@ struct Formatter<T*> {
     Res<> format(Io::TextWriter& writer, T* val) {
         if (prefix) {
             try$(writer.writeRune('('));
-            try$(writer.writeStr(nameOf<T>()));
+            try$(writer.writeStr(Meta::nameOf<T>()));
             try$(writer.writeStr(" *)"s));
         }
 
@@ -33,6 +34,13 @@ struct Formatter<T*> {
         }
 
         return Ok();
+    }
+};
+
+template <>
+struct Formatter<FlatPtr> : Formatter<void*> {
+    Res<> format(Io::TextWriter& writer, FlatPtr const& val) {
+        return Formatter<void*>::format(writer, (void*) (uptr) val);
     }
 };
 
