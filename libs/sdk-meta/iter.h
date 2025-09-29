@@ -68,7 +68,14 @@ struct Iter {
 
     constexpr auto contains(Item const& item) const -> bool
         requires(Meta::Equatable<V>)
-    { }
+    {
+        for (auto v = next(); v; v = next()) {
+            if (*v == *item) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     constexpr void forEach(auto f) {
         for (auto item = next(); item; item = next()) {
@@ -82,11 +89,36 @@ struct Iter {
 
     constexpr auto sum() const -> Item
         requires(Meta::Computable<V>)
-    { }
+    {
+        Item sum {};
+        for (auto item = next(); item; item = next()) {
+            if (not sum) {
+                sum = *item;
+            } else {
+                sum = *sum + *item;
+            }
+        }
+        return sum;
+    }
 
     constexpr auto avg() const -> Item
         requires(Meta::Computable<V>)
-    { }
+    {
+        Item  sum {};
+        usize count = 0;
+        for (auto item = next(); item; item = next()) {
+            if (not sum) {
+                sum = *item;
+            } else {
+                sum = *sum + *item;
+            }
+            ++count;
+        }
+        if (count == 0) {
+            return Empty {};
+        }
+        return sum / count;
+    }
 
     constexpr auto max() -> Item
         requires(Meta::Comparable<V>)
@@ -248,11 +280,27 @@ struct Iter {
         } };
     }
 
-    constexpr auto prepend(V const& v) {
-        auto n = [=, *this, first = true] mutable -> Item {
-            if (first) {
-                first = false;
-                return Item { v };
+    // constexpr auto prepend(V const& v) {
+    //     auto n = [=, *this, first = true] mutable -> Item {
+    //         if (first) {
+    //             first = false;
+    //             return Item { v };
+    //         }
+
+    //         return next();
+    //     };
+    //     return Iter<decltype(n)> { n };
+    // }
+
+    constexpr auto prepend(Iter iter) {
+        auto n = [=, *this, l = iter, consumed = false] mutable -> Item {
+            if (not consumed) {
+                auto item = l.next();
+                if (item) {
+                    return item;
+                } else {
+                    consumed = true;
+                }
             }
 
             return next();
@@ -260,19 +308,34 @@ struct Iter {
         return Iter<decltype(n)> { n };
     }
 
-    constexpr auto append(V const& v) {
-        auto n = [=, *this, last = false] mutable -> Item {
-            if (last) {
-                return Empty {};
+    // constexpr auto append(V const& v) {
+    //     auto n = [=, *this, last = false] mutable -> Item {
+    //         if (last) {
+    //             return Empty {};
+    //         }
+
+    //         auto item = next();
+    //         if (not item) {
+    //             last = true;
+    //             return Item { v };
+    //         }
+
+    //         return item;
+    //     };
+    //     return Iter<decltype(n)> { n };
+    // }
+
+    constexpr auto append(auto it) {
+        auto n = [=, *this, consumed = false] mutable -> Item {
+            if (not consumed) {
+                auto item = next();
+                if (item) {
+                    return item;
+                }
+                consumed = true;
             }
 
-            auto item = next();
-            if (not item) {
-                last = true;
-                return Item { v };
-            }
-
-            return item;
+            return it.next();
         };
         return Iter<decltype(n)> { n };
     }
@@ -331,7 +394,7 @@ struct Iter {
         return Empty {};
     }
 
-#define first$(expr) first([&](auto x) { return expr; })
+#define first$(expr) first([&](auto it) { return expr; })
 
     constexpr auto firstOrDefault(Item const& def) const -> Item {
         auto item = next();
