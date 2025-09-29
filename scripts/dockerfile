@@ -1,0 +1,12 @@
+from ubuntu:22.04
+run sudo apt update -y
+run sudo apt install -y \ 
+    build-essential bison flex \ 
+    libgmp3-dev libmpc-dev libmpfr-dev libisl-dev \ 
+    texinfo nasm git xmake
+
+workdir /var
+run set -e
+run git clone https://github.com/xbendan/neodymium.git; cd neodymium
+run ./scripts/build_gcc.sh
+run ./scripts/build_kernel.sh
