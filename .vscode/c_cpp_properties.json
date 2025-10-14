@@ -13,13 +13,14 @@
             "name": "Kernel.x86_64",
             "includePath": [
                 "${workspaceFolder}/libs/*",
-                "${workspaceFolder}/src/include/*"
+                "${workspaceFolder}/src/*",
+                "${workspaceFolder}/specs/*"
             ],
             "defines": [
-                "KCorePmmUseBits"
+                "USING_AK_GLOBALLY"
             ],
-            "compilerPath": "clang++",
-            "intelliSenseMode": "clang-x64",
+            "compilerPath": "x86_64-elf-g++",
+            "intelliSenseMode": "gcc-x64",
             "cppStandard": "c++23",
             "cStandard": "c23"
         },
