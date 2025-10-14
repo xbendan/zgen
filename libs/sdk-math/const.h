@@ -2,7 +2,7 @@
 
 #include <sdk-meta/types.h>
 
-namespace Sdk::Math {
+namespace Math {
 inline constexpr f64 Pi  = 3.14159265358979323846;
 inline constexpr f64 Tau = 6.28318530717958647692; // Tau = 2 * Pi
 inline constexpr f64 E   = 2.71828182845904523536; // Euler's number
@@ -20,4 +20,6 @@ inline constexpr f64 Log10E = 0.43429448190325182765; // log base 10 of e
 inline f64 const Nan    = 0.0 / 0.0;  // Not-a-Number (NaN)
 inline f64 const PosInf = 1.0 / 0.0;  // Positive Infinity
 inline f64 const NegInf = -1.0 / 0.0; // Negative Infinity
-} // namespace Sdk::Math
+
+inline constexpr u32 HashPrime = 101;
+} // namespace Math

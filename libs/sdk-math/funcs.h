@@ -6,7 +6,7 @@
 #include <sdk-meta/traits.h>
 #include <sdk-meta/types.h>
 
-namespace Sdk::Math {
+namespace Math {
 
 template <Meta::Signed T>
 constexpr auto abs(T x) -> T {
@@ -82,7 +82,8 @@ constexpr auto round(Meta::Arithmetic auto x) -> decltype(x) {
 }
 
 constexpr auto sqrt(Meta::Float auto x) -> decltype(x) {
-    return __builtin_sqrt(x);
+    // TODO: add SSE/AVX implementation
+    // return __builtin_sqrt(x);
 }
 
 constexpr auto rsqrt(Meta::Float auto x) -> decltype(x) {
@@ -128,4 +129,41 @@ static constexpr auto fcos(Meta::Float auto x) -> decltype(x) {
     return x;
 }
 
-} // namespace Sdk::Math
+namespace _ {
+static usize const primes[] = {
+    3,       7,       17,      37,       89,       197,      431,
+    919,     1931,    4049,    8419,     1'7519,   3'6353,   7'5431,
+    15'6437, 32'4449, 67'2827, 139'5263, 289'3249, 599'9471,
+};
+}
+
+static bool isPrime(Meta::Integral auto candidate) {
+    // TODO: add SSE/AVX implementation
+    // if ((candidate bitand 1) != 0) {
+    //     int limit = (int) sqrt(candidate);
+    //     for (int divisor = 3; divisor <= limit; divisor += 2) {
+    //         if ((candidate % divisor) == 0)
+    //             return false;
+    //     }
+    //     return true;
+    // }
+    // return candidate == 2;
+    return true; // --- IGNORE ---
+}
+
+template <Meta::Integral T>
+[[gnu::always_inline]] constexpr T nextPrime(T min) {
+
+    for (auto prime : _::primes) {
+        if (prime >= min)
+            return prime;
+    }
+
+    for (int i = (min | 1); i < Limits<T>::MAX; i += 2) {
+        if (isPrime(i) and ((i - 1) % HashPrime != 0))
+            return i;
+    }
+    return Limits<T>::MAX; // No prime found, return max value
+}
+
+} // namespace Math
