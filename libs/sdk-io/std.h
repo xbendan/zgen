@@ -7,10 +7,10 @@
 
 namespace Sdk {
 
-Opt<Io::TextReader*> in();
+Opt<Io::TextReader&> in();
 
-Opt<Io::TextWriter*> out();
+Opt<Io::TextWriter&> out();
 
-Opt<Io::TextWriter*> err();
+Opt<Io::TextWriter&> err();
 
 } // namespace Sdk
