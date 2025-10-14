@@ -4,7 +4,6 @@
 #include <sdk-meta/iter.h>
 #include <sdk-meta/opt.h>
 #include <sdk-meta/panic.h>
-#include <sdk-meta/std.h>
 #include <sdk-meta/traits.h>
 #include <sdk-meta/types.h>
 
@@ -16,41 +15,48 @@ struct Lnode : Meta::Pinned {
     T* next { nullptr };
 };
 
+template <typename T>
+concept HasLnode = requires(T& t) {
+    requires Meta::Same<Meta::RemoveCvRef<decltype(T::lnode)>, Lnode<T>>;
+};
+
 template <typename>
 struct List;
 
 // MARK: - Intrusive List
 
 template <typename T>
-    requires requires(T& t) {
-        { t.item } -> Meta::Same<Lnode<T>>;
-    }
+    requires(HasLnode<T>)
 struct List<T> {
     T*    _head;
     T*    _tail;
     usize _count;
     usize _version;
 
-    constexpr static T::Item* Item = &T::item;
+    constexpr static auto T::* Lnode = &T::lnode;
 
-    static auto& item(T* value) { return value->*Item; }
+    static auto& item(T* value) { return value->*Lnode; }
 
     static T*& prev(T* value) { return item(value).prev; }
 
     static T*& next(T* value) { return item(value).next; }
 
-    List() = default;
+    List() noexcept = default;
 
     List(InitializerList<T> initials);
 
-    List(List const& other) {
-        // clear()
+    template <typename U = T>
+        requires(Meta::CopyConstructible<T, U>)
+    List(List<U> const& other) {
+        clear();
         for (auto& item : other) {
             append(item);
         }
     }
 
-    List(List&& other) noexcept
+    template <typename U = T>
+        requires(Meta::Convertible<U, T>)
+    List(List<U>&& other) noexcept
         : _head(other._head),
           _tail(other._tail),
           _count(other._count) {
@@ -65,14 +71,14 @@ struct List<T> {
         if (index >= _count) {
             panic("List::operator[]: index out of bounds.");
         }
-        return *at(index).unwrap();
+        return at(index).unwrap();
     }
 
     T& operator[](usize index) {
         if (index >= _count) {
             panic("List::operator[]: index out of bounds.");
         }
-        return *at(index).unwrap();
+        return at(index).unwrap();
     }
 
     T* head() { return _head; }
@@ -114,7 +120,7 @@ struct List<T> {
     void prepend(T const& value) {
         auto* p = &value;
 
-        if (_head == EMPTY)
+        if (_head == NONE)
             _head = _tail = p;
         else {
             next(p)     = _head;
@@ -130,7 +136,7 @@ struct List<T> {
     void append(T const& value) {
         auto* p = &value;
 
-        if (_head == EMPTY)
+        if (_head == NONE)
             _head = _tail = p;
         else {
             next(_tail) = p;
@@ -143,21 +149,69 @@ struct List<T> {
         _version++;
     }
 
-    Opt<Cursor<T>> at(usize index) {
+    Opt<T&> at(usize index) {
         if (index >= _count) {
-            return {};
+            return NONE;
         }
         // Traverse the list to find the node at the given index
         auto* current = _head;
         for (usize i = 0; i < index; ++i) {
             current = current->next;
         }
-        return { &current->value };
+        return &current->value;
     }
 
-    void remove(usize index) { }
+    void remove(usize index) {
+        // TODO: check correctness because AI generated this part
+        if (index >= _count) {
+            panic("List::remove: index out of bounds.");
+        }
 
-    void remove(T const& value) { }
+        auto* current = _head;
+        for (usize i = 0; i < index; ++i)
+            current = next(current);
+
+        if (prev(current))
+            next(prev(current)) = next(current);
+        else
+            _head = next(current);
+
+        if (next(current))
+            prev(next(current)) = prev(current);
+        else
+            _tail = prev(current);
+
+        next(current) = nullptr;
+        prev(current) = nullptr;
+
+        _count--;
+        _version++;
+    }
+
+    void remove(T const& value) {
+        // TODO: check correctness because AI generated this part
+        auto* current = _head;
+        while (current) {
+            if (current->value == value) {
+                // Found the node to remove
+                if (prev(current))
+                    next(prev(current)) = next(current);
+                else
+                    _head = next(current);
+
+                if (next(current))
+                    prev(next(current)) = prev(current);
+                else
+                    _tail = prev(current);
+
+                delete current;
+                _count--;
+                _version++;
+                return;
+            }
+            current = next(current);
+        }
+    }
 
     void clear() {
         while (_head) {
@@ -192,110 +246,20 @@ struct List<T> {
                 curr      = next(curr);
                 return Cursor(val);
             }
-            return EMPTY;
+            return NONE;
         });
     }
 };
 
-// MARK: - Non-intrusive List
-
 template <typename T>
-    requires(not requires(T& t) {
-        { t.item } -> Meta::Same<Lnode<T>>;
-    })
-struct List<T> {
-    struct Item {
+struct List {
+    struct Node {
         T           value;
-        Lnode<Item> item;
+        Lnode<Node> lnode;
     };
+    List<Node> _list;
 
-    List<Item> _list;
-
-    List() = default;
-
-    List(InitializerList<T> initials) {
-        // clear()
-        // Append all initial values
-    }
-
-    List(List const& other) : _list(other._list) { }
-
-    List(List&& other) noexcept : _list(::move(other._list)) { }
-
-    ~List() { clear(); }
-
-    T* head() { return _list.head() ? &_list.head()->value : nullptr; }
-
-    T const* head() const {
-        return _list.head() ? &_list.head()->value : nullptr;
-    }
-
-    T* tail() { return _list.tail() ? &_list.tail()->value : nullptr; }
-
-    T const* tail() const {
-        return _list.tail() ? &_list.tail()->value : nullptr;
-    }
-
-    usize count() const { return _list.count(); }
-
-    void insert(usize index, T const& value) {
-        _list.insert(index, { ::move(value), {} });
-    }
-
-    void prepend(T const& value) { _list.prepend({ ::move(value), {} }); }
-
-    void append(T const& value) { _list.append({ ::move(value), {} }); }
-
-    template <typename... Args>
-    void emplace(usize index, Args&&... args) {
-        if (index > _list.count()) {
-            panic("List::emplace: index out of bounds.");
-        }
-
-        auto* n = new Item { T(::forward<Args>(args)...), {} };
-    }
-
-    Opt<Cursor<T>> at(usize index) {
-        return _list.at(index).map(
-            [](Item* item) { return Cursor(&item->value); });
-    }
-
-    void remove(usize index) {
-        auto opt = at(index);
-        if (opt) {
-            remove(*opt.unwrap());
-        }
-    }
-
-    void remove(T const& value) { }
-
-    void clear() { _list.clear(); }
-
-    bool contains(T const& value) const {
-        for (auto& item : _list) {
-            if (item.value == value) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    auto iter() {
-        return Iter([_list = &_list,
-                     head  = _list.head(),
-                     ver   = _list._version] mutable -> Opt<Cursor<T>> {
-            if (ver != _list->_version) {
-                panic("List::iter(): List modified during iteration");
-            }
-
-            if (head) {
-                auto* val = head;
-                head      = List<Item>::next(head);
-                return Cursor(&val->value);
-            }
-            return EMPTY;
-        });
-    }
+    // Other member functions...
 };
 
 } // namespace Meta

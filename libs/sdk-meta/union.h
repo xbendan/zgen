@@ -4,7 +4,6 @@
 #include <sdk-meta/hash.h>
 #include <sdk-meta/math.h>
 #include <sdk-meta/panic.h>
-#include <sdk-meta/std.h>
 #include <sdk-meta/traits.h>
 #include <sdk-meta/types.h>
 
@@ -17,8 +16,8 @@ struct Union {
     u8 _index;
 
     [[gnu::always_inline]] Union()
-        requires(Meta::Contains<Empty, Ts...>)
-        : Union(Empty {}) { }
+        requires(Meta::Contains<None, Ts...>)
+        : Union(None {}) { }
 
     template <Meta::Contains<Ts...> T>
     [[gnu::always_inline]] Union(T const& value)

@@ -2,11 +2,10 @@
 
 #include <sdk-meta/error.h>
 #include <sdk-meta/opt.h>
-#include <sdk-meta/std.h>
 #include <sdk-meta/types.h>
 #include <sdk-meta/union.h>
 
-template <typename T = Empty>
+template <typename T = None>
 struct Ok {
     T inner;
 
@@ -26,7 +25,7 @@ struct Ok {
 template <typename... Args>
 Ok(Args&&...) -> Ok<Meta::RemoveCvRef<Args>...>;
 
-template <typename V = Empty, typename E = Error>
+template <typename V = None, typename E = Error>
 struct [[nodiscard]] Res {
     using Inner = Union<Ok<V>, E>;
 
@@ -42,7 +41,7 @@ struct [[nodiscard]] Res {
 
     [[gnu::always_inline]] constexpr Res(E err) : _inner(err) { }
 
-    [[gnu::always_inline]] constexpr Res(Empty)
+    [[gnu::always_inline]] constexpr Res(None)
         : _inner(Error::unknown("unexpected none")) { }
 
     template <typename U>
@@ -55,13 +54,13 @@ struct [[nodiscard]] Res {
 
     [[gnu::always_inline]] constexpr Opt<V> ok() const {
         if (_inner.template is<E>()) [[unlikely]]
-            return Empty {};
+            return None {};
         return _inner.template unwrap<Ok<V>>().inner;
     }
 
     [[gnu::always_inline]] constexpr Opt<E> err() const {
         if (not _inner.template is<E>()) [[unlikely]]
-            return Empty {};
+            return None {};
         return _inner.template unwrap<E>();
     }
 
@@ -173,6 +172,14 @@ extern "C" void __try_failed();
             FINAL;                                                             \
         }                                                                      \
         __expr.take();                                                         \
+    })
+
+#define prerequisite$(EXPR, ERRMSG, ...)                                       \
+    ({                                                                         \
+        if (not(EXPR)) [[unlikely]] {                                          \
+            logError(ERRMSG, __VA_ARGS__);                                     \
+            return Error::invalidArgument(ERRMSG);                             \
+        }                                                                      \
     })
 
 // clang-format off

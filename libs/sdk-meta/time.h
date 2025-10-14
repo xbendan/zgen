@@ -1,46 +1,45 @@
 #pragma once
 
 #include <sdk-meta/panic.h>
-#include <sdk-meta/std.h>
 #include <sdk-meta/str.h>
 #include <sdk-meta/types.h>
 
-// MARK: Duration and TimeStamp
+// MARK: TimeSpan and TimeStamp
 
 using _TimeVal = u64;
 
-struct Duration {
+struct TimeSpan {
     _TimeVal _value; // microseconds (us) aka 1/1,000,000th of a second
 
     // clang-format off
 
-    static constexpr Duration zero() { return Duration(0); }
+    static constexpr TimeSpan zero() { return TimeSpan(0); }
 
-    static constexpr Duration infinite() { return Duration(~0uz); }
+    static constexpr TimeSpan infinite() { return TimeSpan(~0uz); }
 
-    static constexpr Duration ofMicroseconds(_TimeVal us) { return { us }; }
+    static constexpr TimeSpan ofMicroseconds(_TimeVal us) { return { us }; }
 
-    static constexpr Duration ofMilliseconds(_TimeVal ms) { return ofMicroseconds(ms * 1000); }
+    static constexpr TimeSpan ofMilliseconds(_TimeVal ms) { return ofMicroseconds(ms * 1000); }
 
-    static constexpr Duration ofSeconds(_TimeVal s) { return ofMilliseconds(s * 1000); }
+    static constexpr TimeSpan ofSeconds(_TimeVal s) { return ofMilliseconds(s * 1000); }
 
-    static constexpr Duration ofMinutes(_TimeVal m) { return ofSeconds(m * 60); }
+    static constexpr TimeSpan ofMinutes(_TimeVal m) { return ofSeconds(m * 60); }
 
-    static constexpr Duration ofHours(_TimeVal h) { return ofMinutes(h * 60); }
+    static constexpr TimeSpan ofHours(_TimeVal h) { return ofMinutes(h * 60); }
 
-    static constexpr Duration ofDays(_TimeVal d) { return ofHours(d * 24); }
+    static constexpr TimeSpan ofDays(_TimeVal d) { return ofHours(d * 24); }
 
-    static constexpr Duration ofWeeks(_TimeVal w) { return ofDays(w * 7); }
+    static constexpr TimeSpan ofWeeks(_TimeVal w) { return ofDays(w * 7); }
 
     // Approximation, as months vary in length
-    static constexpr Duration ofMonths(_TimeVal m) { return ofDays(m * 30); }
+    static constexpr TimeSpan ofMonths(_TimeVal m) { return ofDays(m * 30); }
 
     // Approximation, as years can be leap years
-    static constexpr Duration ofYears(_TimeVal y) { return ofDays(y * 365); }
+    static constexpr TimeSpan ofYears(_TimeVal y) { return ofDays(y * 365); }
 
-    constexpr Duration() : _value(0) { }
+    constexpr TimeSpan() : _value(0) { }
 
-    constexpr Duration(_TimeVal value) : _value(value) { }
+    constexpr TimeSpan(_TimeVal value) : _value(value) { }
 
     constexpr operator _TimeVal() const { return _value; }
 
@@ -66,26 +65,26 @@ struct Duration {
 
     constexpr _TimeVal getAsYears() const { return getAsDays() / 365; }
 
-    constexpr auto operator<=>(Duration const&) const = default;
+    constexpr auto operator<=>(TimeSpan const&) const = default;
 
-    constexpr bool operator==(Duration const& other) const { return _value == other._value; }
+    constexpr bool operator==(TimeSpan const& other) const { return _value == other._value; }
 
-    constexpr Duration& operator+=(Duration const& other) {
+    constexpr TimeSpan& operator+=(TimeSpan const& other) {
         _value += other._value;
         return *this;
     }
 
-    constexpr Duration& operator-=(Duration const& other) {
+    constexpr TimeSpan& operator-=(TimeSpan const& other) {
         _value -= other._value;
         return *this;
     }
 
-    constexpr Duration operator+(Duration const& other) const {
-        return Duration(_value + other._value);
+    constexpr TimeSpan operator+(TimeSpan const& other) const {
+        return TimeSpan(_value + other._value);
     }
 
-    constexpr Duration operator-(Duration const& other) const {
-        return Duration(_value - other._value);
+    constexpr TimeSpan operator-(TimeSpan const& other) const {
+        return TimeSpan(_value - other._value);
     }
 
     // clang-format on
@@ -113,17 +112,17 @@ struct _Instant {
 
     constexpr bool isEndOfTime() const { return _value == END_OF_TIME; }
 
-    constexpr _Instant& operator+=(Duration other) {
+    constexpr _Instant& operator+=(TimeSpan other) {
         *this = *this + other;
         return *this;
     }
 
-    constexpr _Instant& operator-=(Duration other) {
+    constexpr _Instant& operator-=(TimeSpan other) {
         *this = *this - other;
         return *this;
     }
 
-    constexpr _Instant operator+(Duration other) const {
+    constexpr _Instant operator+(TimeSpan other) const {
         if (other.isInfinite()) {
             return endOfTime();
         }
@@ -133,16 +132,16 @@ struct _Instant {
         return _value + other._value;
     }
 
-    constexpr _Instant operator-(Duration other) const {
+    constexpr _Instant operator-(TimeSpan other) const {
         if (isEndOfTime()) {
             return *this;
         }
         return _value - other._value;
     }
 
-    constexpr Duration operator-(_Instant other) const {
+    constexpr TimeSpan operator-(_Instant other) const {
         if (isEndOfTime() or other.isEndOfTime()) {
-            return Duration::infinite();
+            return TimeSpan::infinite();
         }
         return _value - other._value;
     }

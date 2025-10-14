@@ -1,9 +1,9 @@
 #pragma once
 
 #include <sdk-meta/panic.h>
-#include <sdk-meta/slice.h>
-#include <sdk-meta/traits.h>
 #include <sdk-meta/types.h>
+
+namespace Meta {
 
 template <typename T, usize N>
 struct Array {
@@ -40,3 +40,7 @@ struct Array {
 
     [[gnu::always_inline]] constexpr usize len() const { return N; }
 };
+
+} // namespace Meta
+
+using Meta::Array;

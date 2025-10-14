@@ -19,14 +19,14 @@ struct Opt<T> {
     using Inner = Meta::RemoveCvRef<T>*;
 
     union {
-        Empty _none;
+        None  _none;
         Inner _value;
     };
     bool _present { false };
 
     [[gnu::always_inline]] constexpr Opt() : _none(), _present(false) { }
 
-    [[gnu::always_inline]] constexpr Opt(Empty) : _none(), _present(false) { }
+    [[gnu::always_inline]] constexpr Opt(None) : _none(), _present(false) { }
 
     template <typename U = T>
         requires(not Same<RemoveCvRef<U>, Opt<T>> and Convertible<U, T>)
@@ -40,24 +40,11 @@ struct Opt<T> {
         : _value(value),
           _present(true) { }
 
-    // template <typename U = T>
-    //     requires(not Same<RemoveCvRef<U>, Opt<T>> and MoveConstructible<T, U>)
-    // [[gnu::always_inline]] constexpr Opt(U&& value)
-    //     : _value(static_cast<U&&>(value)),
-    //       _present(true) { }
-
     [[gnu::always_inline]] constexpr Opt(Opt const& other)
         : _present(other._present) {
         if (_present)
             _value = other._value;
     }
-
-    // [[gnu::always_inline]] constexpr Opt(Opt&& other)
-    //     requires(Meta::MoveConstructible<T>)
-    //     : _present(other._present) {
-    //     if (_present)
-    //         new (&_value) T(Meta::forward<T>(other._value));
-    // }
 
     template <typename U>
     [[gnu::always_inline]] constexpr Opt(Opt<U> const& other)
@@ -76,7 +63,7 @@ struct Opt<T> {
 
     ~Opt() { clear(); }
 
-    [[gnu::always_inline]] constexpr Opt& operator=(Empty) {
+    [[gnu::always_inline]] constexpr Opt& operator=(None) {
         clear();
         return *this;
     }
@@ -149,7 +136,7 @@ struct Opt<T> {
 
     [[gnu::always_inline]] constexpr Meta::RemoveCvRef<T>* operator->() {
         if (not _present) [[unlikely]] {
-            panic("Opt::operator-> on Empty");
+            panic("Opt::operator-> on None");
         }
         return _value;
     }
@@ -157,14 +144,14 @@ struct Opt<T> {
     [[gnu::always_inline]] constexpr Meta::RemoveCvRef<T> const* operator->()
         const {
         if (not _present) [[unlikely]] {
-            panic("Opt::operator->: on Empty");
+            panic("Opt::operator->: on None");
         }
         return _value;
     }
 
     [[gnu::always_inline]] constexpr Meta::RemoveCvRef<T>& operator*() {
         if (not _present) [[unlikely]] {
-            panic("Opt::operator*: on Empty");
+            panic("Opt::operator*: on None");
         }
         return *_value;
     }
@@ -172,7 +159,7 @@ struct Opt<T> {
     [[gnu::always_inline]] constexpr Meta::RemoveCvRef<T> const& operator*()
         const {
         if (not _present) [[unlikely]] {
-            panic("Opt::operator*: on Empty");
+            panic("Opt::operator*: on None");
         }
         return *_value;
     }
@@ -195,7 +182,7 @@ struct Opt<T> {
     }
 
     [[gnu::always_inline]] constexpr T& unwrap(char const* msg
-                                               = "Opt::unwrap(): on Empty") {
+                                               = "Opt::unwrap(): on None") {
         if (not _present) [[unlikely]] {
             panic(msg);
         }
@@ -203,7 +190,7 @@ struct Opt<T> {
     }
 
     [[gnu::always_inline]] constexpr T const& unwrap(
-        char const* msg = "Opt::unwrap(): unwrap on Empty") const {
+        char const* msg = "Opt::unwrap(): unwrap on None") const {
         if (not _present) [[unlikely]] {
             panic(msg);
         }
@@ -226,7 +213,7 @@ struct Opt<T> {
     }
 
     [[gnu::always_inline]] constexpr T take(char const* msg
-                                            = "Opt::take(): take on Empty") {
+                                            = "Opt::take(): take on None") {
         if (not _present) [[unlikely]] {
             panic(msg);
         }
@@ -239,7 +226,7 @@ struct Opt<T> {
     [[gnu::always_inline]] constexpr auto mapTo(Callable<T> auto&& func)
         -> Opt<decltype(func(unwrap()))> {
         if (not _present) {
-            return Empty {};
+            return None {};
         }
         return func(unwrap());
     }
@@ -249,14 +236,14 @@ struct Opt<T> {
         requires(Meta::Convertible<T, U>)
     {
         if (not _present) {
-            return Empty {};
+            return None {};
         }
         return static_cast<U>(unwrap());
     }
 
     // #define mapTo$(expr) mapTo([&](auto x) { return expr; })
 
-    [[gnu::always_inline]] constexpr bool operator==(Empty) const {
+    [[gnu::always_inline]] constexpr bool operator==(None) const {
         return not _present;
     }
 
@@ -269,7 +256,7 @@ struct Opt<T> {
         return _value == other;
     }
 
-    static constexpr Empty none() { return Empty {}; }
+    static constexpr None none() { return None {}; }
 };
 
 // MARK: - General case
@@ -280,14 +267,14 @@ struct Opt {
     using Inner = T;
 
     union {
-        Empty _none;
-        T     _value;
+        None _none;
+        T    _value;
     };
     bool _present { false };
 
     [[gnu::always_inline]] constexpr Opt() : _none(), _present(false) { }
 
-    [[gnu::always_inline]] constexpr Opt(Empty) : _none(), _present(false) { }
+    [[gnu::always_inline]] constexpr Opt(None) : _none(), _present(false) { }
 
     template <typename U = T>
         requires(not Same<RemoveCvRef<U>, Opt<T>> and CopyConstructible<T, U>)
@@ -333,7 +320,7 @@ struct Opt {
 
     ~Opt() { clear(); }
 
-    [[gnu::always_inline]] constexpr Opt& operator=(Empty) {
+    [[gnu::always_inline]] constexpr Opt& operator=(None) {
         clear();
         return *this;
     }
@@ -402,28 +389,28 @@ struct Opt {
 
     [[gnu::always_inline]] constexpr T* operator->() {
         if (not _present) [[unlikely]] {
-            panic("Opt::operator-> on Empty");
+            panic("Opt::operator-> on None");
         }
         return &_value;
     }
 
     [[gnu::always_inline]] constexpr T const* operator->() const {
         if (not _present) [[unlikely]] {
-            panic("Opt::operator->: on Empty");
+            panic("Opt::operator->: on None");
         }
         return &_value;
     }
 
     [[gnu::always_inline]] constexpr T& operator*() {
         if (not _present) [[unlikely]] {
-            panic("Opt::operator*: on Empty");
+            panic("Opt::operator*: on None");
         }
         return _value;
     }
 
     [[gnu::always_inline]] constexpr T const& operator*() const {
         if (not _present) [[unlikely]] {
-            panic("Opt::operator*: on Empty");
+            panic("Opt::operator*: on None");
         }
         return _value;
     }
@@ -446,7 +433,7 @@ struct Opt {
     }
 
     [[gnu::always_inline]] constexpr T& unwrap(char const* msg
-                                               = "Opt::unwrap(): on Empty") {
+                                               = "Opt::unwrap(): on None") {
         if (not _present) [[unlikely]] {
             panic(msg);
         }
@@ -454,7 +441,7 @@ struct Opt {
     }
 
     [[gnu::always_inline]] constexpr T const& unwrap(
-        char const* msg = "Opt::unwrap(): unwrap on Empty") const {
+        char const* msg = "Opt::unwrap(): unwrap on None") const {
         if (not _present) [[unlikely]] {
             panic(msg);
         }
@@ -476,8 +463,15 @@ struct Opt {
         return func();
     }
 
+    [[gnu::always_inline]] constexpr T unwrapOrDefault(T other) const {
+        if (_present) {
+            return _value;
+        }
+        return other;
+    }
+
     [[gnu::always_inline]] constexpr T take(char const* msg
-                                            = "Opt::take(): take on Empty") {
+                                            = "Opt::take(): take on None") {
         if (not _present) [[unlikely]] {
             panic(msg);
         }
@@ -490,7 +484,7 @@ struct Opt {
     [[gnu::always_inline]] constexpr auto mapTo(Callable<T> auto&& func)
         -> Opt<decltype(func(unwrap()))> {
         if (not _present) {
-            return Empty {};
+            return None {};
         }
         return func(unwrap());
     }
@@ -500,14 +494,29 @@ struct Opt {
         requires(Meta::Convertible<T, U>)
     {
         if (not _present) {
-            return Empty {};
+            return None {};
         }
         return static_cast<U>(unwrap());
     }
 
-#define mapTo$(expr) mapTo([&](auto x) { return expr; })
+#define mapTo$(expr) mapTo([&](auto it) { return expr; })
 
-    [[gnu::always_inline]] constexpr bool operator==(Empty) const {
+    [[gnu::always_inline]] constexpr void ifPresent(Callable<T> auto&& func) {
+        if (_present) {
+            func(_value);
+        }
+    }
+
+    [[gnu::always_inline]] constexpr void ifPresent(
+        Callable<T> auto&& func) const {
+        if (_present) {
+            func(_value);
+        }
+    }
+
+#define ifPresent$(expr) ifPresent([&](auto it) { expr; })
+
+    [[gnu::always_inline]] constexpr bool operator==(None) const {
         return not _present;
     }
 
@@ -520,7 +529,7 @@ struct Opt {
         return _value == other;
     }
 
-    static constexpr Empty none() { return Empty {}; }
+    static constexpr None none() { return None {}; }
 };
 
 } // namespace Meta

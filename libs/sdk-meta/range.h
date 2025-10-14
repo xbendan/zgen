@@ -19,7 +19,7 @@ struct Range {
 
     [[gnu::always_inline]] constexpr Range() = default;
 
-    [[gnu::always_inline]] constexpr explicit Range(T start)
+    [[gnu::always_inline]] constexpr Range(T start)
         : _start(start),
           _size(0) { }
 
@@ -27,9 +27,13 @@ struct Range {
         : _start(start),
           _size(size) { }
 
+    [[gnu::always_inline]] constexpr T start() const { return _start; }
+
+    [[gnu::always_inline]] constexpr Size size() const { return _size; }
+
     [[gnu::always_inline]] constexpr T end() const { return _start + _size; }
 
-    [[gnu::always_inline]] constexpr T endsAt(T val) {
+    [[gnu::always_inline]] constexpr T end(T val) {
         if (val >= _start) {
             _size = val - _start;
         }
@@ -90,14 +94,34 @@ struct Range {
 
     template <typename U>
     [[gnu::always_inline]] constexpr U into() const {
-        return U { _start, _size };
+        return U { start(), size() };
     }
 
     Opt<bool> ensureAligned(T align) const {
         if (not isAlign(_start, align) or not isAlign(_size, align))
-            return Empty {};
+            return None {};
 
         return true;
+    }
+
+    [[gnu::always_inline]] constexpr Range downscale(usize factor) const {
+        return { _start / factor, _size / factor };
+    }
+
+    [[gnu::always_inline]] constexpr Range upscale(usize factor) const {
+        return { _start * factor, _size * factor };
+    }
+
+    [[gnu::always_inline]] constexpr Vec<T> toVec() const {
+        Vec<T> vec;
+        for (T i = 0; i < _size; i++) {
+            vec.push(_start + i);
+        }
+        return vec;
+    }
+
+    [[gnu::always_inline]] constexpr Bytes bytes() const {
+        return { reinterpret_cast<byte const*>(&_start), sizeof(T) * size() };
     }
 
     constexpr bool operator==(Range const&) const = default;

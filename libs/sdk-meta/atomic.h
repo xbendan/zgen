@@ -4,14 +4,18 @@
 #include <sdk-meta/utility.h>
 
 enum MemoryOrder : u8 {
-    Relaxed                = 0,
-    Acquire                = 1,
-    Release                = 2,
-    AcquireRelease         = 3,
-    SequentiallyConsistent = 4
+    Relaxed                = __ATOMIC_RELAXED,
+    Acquire                = __ATOMIC_ACQUIRE,
+    Release                = __ATOMIC_RELEASE,
+    AcquireRelease         = __ATOMIC_ACQ_REL,
+    SequentiallyConsistent = __ATOMIC_SEQ_CST
 };
 
-inline void placeMemoryBarrier(MemoryOrder order = SequentiallyConsistent) {
+inline void signalfence(MemoryOrder order = SequentiallyConsistent) {
+    __atomic_signal_fence(order);
+}
+
+inline void threadfence(MemoryOrder order = SequentiallyConsistent) {
     __atomic_thread_fence(order);
 }
 
@@ -36,9 +40,9 @@ struct Atomic {
                                         T           desired,
                                         MemoryOrder order
                                         = SequentiallyConsistent) {
-        if (order == AcquireRelease or order == Relaxed)
+        if (order == AcquireRelease or order == Release)
             return __atomic_compare_exchange_n(
-                &_val, &expected, desired, false, Relaxed, Acquire);
+                &_val, &expected, desired, false, Release, Acquire);
 
         return __atomic_compare_exchange_n(
             &_val, &expected, desired, false, order, order);
@@ -89,5 +93,7 @@ struct Atomic {
     [[gnu::always_inline]] bool lockFree() {
         return __atomic_is_lock_free(&_val);
     }
+
+    [[gnu::always_inline]] operator T() { return load(); }
 };
 

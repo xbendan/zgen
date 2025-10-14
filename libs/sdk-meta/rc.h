@@ -9,6 +9,8 @@
 #include <sdk-meta/panic.h>
 #include <sdk-meta/types.h>
 
+namespace Meta {
+
 /// A reference-counted object heap cell.
 template <typename L>
 struct _Cell {
@@ -230,7 +232,7 @@ struct _Rc {
     template <typename U>
     constexpr Opt<_Rc<L, U>> cast() {
         if (not is<U>()) {
-            return Empty {};
+            return None {};
         }
 
         return _Rc<L, U>(Move, _cell);
@@ -313,7 +315,7 @@ struct _Weak {
     /// Returns `NONE` if the object has been deallocated.
     Opt<_Rc<L, T>> upgrade() const {
         if (not _cell or _cell->_strong == 0)
-            return Empty {};
+            return None {};
         return _Rc<L, T>(Move, _cell);
     }
 };
@@ -341,3 +343,104 @@ template <typename T, typename... Args>
 constexpr static Arc<T> makeArc(Args&&... args) {
     return { Move, new Cell<Lock, T>(Meta::forward<Args>(args)...) };
 }
+
+template <typename T>
+struct RefCounted {
+    friend T;
+
+    u32 mutable _refCount;
+
+    [[gnu::always_inline]] void ref() const {
+        if (!(_refCount > 0) or (_refCount + 1) == Limits<u32>::MAX)
+            [[unlikely]] {
+            panic("RefCounted::ref(): ref count overflow");
+        }
+        _refCount++;
+    }
+
+    [[gnu::always_inline]] bool unref() const {
+        auto* that = const_cast<T*>(static_cast<T const*>(this));
+
+        auto count = --that->_refCount;
+        if (count == 0) {
+            if constexpr (requires { that->destroy(); })
+                that->destroy();
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfree-nonheap-object"
+            delete static_cast<T const*>(this);
+#pragma GCC diagnostic pop
+            return true;
+        }
+        return false;
+    }
+
+    [[gnu::always_inline]] u32 refCount() const { return _refCount; }
+
+protected:
+    RefCounted() : _refCount(1) { }
+    ~RefCounted() {
+        if (_refCount != 0) [[unlikely]] {
+            panic(
+                "RefCounted::~RefCounted(): destroying object with non-zero "
+                "ref count");
+        }
+    }
+};
+
+template <typename T>
+struct AtomicRefCounted {
+    friend T;
+
+    Atomic<u32> mutable _refCount;
+
+    void ref() const {
+        if (!(_refCount > 0) or (_refCount + 1) == Limits<u32>::MAX)
+            [[unlikely]] {
+            panic("AtomicRefCounted::ref(): ref count overflow");
+        }
+
+        auto count = _refCount.fetchAdd(1, MemoryOrder::Relaxed);
+    }
+
+    bool unref() const {
+        auto* that = const_cast<T*>(static_cast<T const*>(this));
+
+        auto count
+            = that->_refCount.fetchSub(1, MemoryOrder::AcquireRelease) - 1;
+        if (count == 0) {
+            if constexpr (requires { that->destroy(); })
+                that->destroy();
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfree-nonheap-object"
+            delete static_cast<T const*>(this);
+#pragma GCC diagnostic pop
+            return true;
+        }
+        return false;
+    }
+
+    u32 refCount() const { return _refCount.load(MemoryOrder::Relaxed); }
+
+protected:
+    AtomicRefCounted() : _refCount(1) { }
+    ~AtomicRefCounted() {
+        if (_refCount.load(MemoryOrder::Relaxed) != 0) [[unlikely]] {
+            panic(
+                "AtomicRefCounted::~AtomicRefCounted(): destroying object with "
+                "non-zero ref count");
+        }
+    }
+};
+
+} // namespace Meta
+
+using Meta::Arc;
+using Meta::AtomicRefCounted;
+using Meta::makeArc;
+using Meta::makeRc;
+using Meta::Rc;
+using Meta::RefCounted;
+using Meta::WeakArc;
+using Meta::WeakRc;

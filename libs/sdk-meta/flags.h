@@ -38,7 +38,7 @@ struct Flags {
 public:
     constexpr Flags() noexcept = default;
 
-    constexpr Flags(U value) noexcept : _value(value) { }
+    // constexpr Flags(U value) noexcept : _value(value) { }
 
     constexpr Flags(E value) noexcept : _value(static_cast<U>(value)) { }
 

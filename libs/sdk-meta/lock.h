@@ -19,7 +19,7 @@ struct Lock : Meta::Pinned {
 
     bool _tryAcquire() {
         bool result = _lock.cmpxchg(false, true);
-        placeMemoryBarrier();
+        threadfence();
 
         if (not result) {
             // TODO: leave critical section
@@ -40,7 +40,7 @@ struct Lock : Meta::Pinned {
     }
 
     void release() {
-        placeMemoryBarrier();
+        threadfence();
         _lock.store(false);
         // TODO: leave critical section
     }
@@ -99,7 +99,7 @@ struct ReadWriteLock : Meta::Pinned {
 
         while (not tryAcquireRead()) {
             _Embed::relaxe();
-            placeMemoryBarrier();
+            threadfence();
         }
     }
 
@@ -131,7 +131,7 @@ struct ReadWriteLock : Meta::Pinned {
 
         while (not tryAcquireWrite()) {
             _Embed::relaxe();
-            placeMemoryBarrier();
+            threadfence();
         }
 
         _pendings.dec();

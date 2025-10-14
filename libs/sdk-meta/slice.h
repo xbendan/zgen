@@ -1,9 +1,10 @@
 #pragma once
 
-#include <sdk-meta/iter.h>
+#include <sdk-meta/hash.h>
 #include <sdk-meta/panic.h>
 #include <sdk-meta/traits.h>
 #include <sdk-meta/types.h>
+#include <sdk-meta/utility.h>
 
 template <typename T, typename U = typename T::Inner>
 concept Sliceable = requires(T const& t) {
@@ -121,6 +122,8 @@ struct Slice {
 using Bytes        = Slice<byte>;
 using CharSequence = Slice<char>;
 
+static_assert(Sliceable<Bytes>);
+
 constexpr auto begin(Sliceable auto const& slice) {
     return slice.buf();
 }
@@ -162,33 +165,27 @@ constexpr usize len(Sliceable auto const& s) {
     return s.len();
 }
 
-constexpr void reverse(Sliceable auto& slice) {
-    using T = typename decltype(slice)::Inner;
-
-    if constexpr (not Meta::CopyConstructible<T>) {
-        panic("Slice::reverse: type {} is not copy constructible");
-    }
-
-    for (usize i = 0, j = slice.len() - 1; i < j; i++, j--) {
-        T temp   = slice[i];
-        slice[i] = slice[j];
-        slice[j] = temp;
-    }
-}
-
 template <Sliceable S>
 Bytes bytes(S const& s) {
     return { reinterpret_cast<byte const*>(s.buf()),
              s.len() * sizeof(typename S::Inner) };
 };
 
-template <Sliceable S>
-constexpr auto iter(S const& slice) {
-    return Iter([&slice, i = 0uz] mutable -> typename S::Inner const* {
-        if (i >= slice.len()) {
-            return nullptr;
-        }
+template <Sliceable S, typename T = typename S::Inner>
+constexpr Slice<T> slice(S const& s) {
+    return { s.buf(), s.len() };
+}
 
-        return &slice.buf()[i++];
-    });
+template <typename T>
+constexpr void reverse(Slice<T> slice) {
+    for (usize i = 0; i < slice.len() / 2; i++) {
+        ::swap(slice[i], slice[slice.len() - 1 - i]);
+    }
+}
+
+template <typename T>
+constexpr void fill(Slice<T> slice, T value) {
+    for (usize i = 0; i < slice.len(); i++) {
+        slice[i] = value;
+    }
 }

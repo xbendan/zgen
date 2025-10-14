@@ -14,6 +14,8 @@
 // If you know how do this with less code, while keeping the
 // requirements, please do so and send me a PR
 
+namespace Meta {
+
 template <typename... Ts>
 struct Tuple;
 
@@ -274,7 +276,11 @@ struct Tuple<_T0, _T1, _T2, _T3, _T4> {
 template <typename T0, typename T1, typename T2, typename T3, typename T4>
 Tuple(T0, T1, T2, T3, T4) -> Tuple<T0, T1, T2, T3, T4>;
 
-template <typename _T0, typename _T1, typename _T2, typename _T3, typename _T4,
+template <typename _T0,
+          typename _T1,
+          typename _T2,
+          typename _T3,
+          typename _T4,
           typename _T5>
 struct Tuple<_T0, _T1, _T2, _T3, _T4, _T5> {
     using T0 = _T0;
@@ -344,12 +350,21 @@ struct Tuple<_T0, _T1, _T2, _T3, _T4, _T5> {
     auto operator<=>(Tuple const&) const = default;
 };
 
-template <typename T0, typename T1, typename T2, typename T3, typename T4,
+template <typename T0,
+          typename T1,
+          typename T2,
+          typename T3,
+          typename T4,
           typename T5>
 Tuple(T0, T1, T2, T3, T4, T5) -> Tuple<T0, T1, T2, T3, T4, T5>;
 
-template <typename _T0, typename _T1, typename _T2, typename _T3, typename _T4,
-          typename _T5, typename _T6>
+template <typename _T0,
+          typename _T1,
+          typename _T2,
+          typename _T3,
+          typename _T4,
+          typename _T5,
+          typename _T6>
 struct Tuple<_T0, _T1, _T2, _T3, _T4, _T5, _T6> {
     using T0 = _T0;
     using T1 = _T1;
@@ -426,12 +441,23 @@ struct Tuple<_T0, _T1, _T2, _T3, _T4, _T5, _T6> {
     auto operator<=>(Tuple const&) const = default;
 };
 
-template <typename T0, typename T1, typename T2, typename T3, typename T4,
-          typename T5, typename T6>
+template <typename T0,
+          typename T1,
+          typename T2,
+          typename T3,
+          typename T4,
+          typename T5,
+          typename T6>
 Tuple(T0, T1, T2, T3, T4, T5, T6) -> Tuple<T0, T1, T2, T3, T4, T5, T6>;
 
-template <typename _T0, typename _T1, typename _T2, typename _T3, typename _T4,
-          typename _T5, typename _T6, typename _T7>
+template <typename _T0,
+          typename _T1,
+          typename _T2,
+          typename _T3,
+          typename _T4,
+          typename _T5,
+          typename _T6,
+          typename _T7>
 struct Tuple<_T0, _T1, _T2, _T3, _T4, _T5, _T6, _T7> {
     using T0 = _T0;
     using T1 = _T1;
@@ -518,13 +544,24 @@ struct Tuple<_T0, _T1, _T2, _T3, _T4, _T5, _T6, _T7> {
     auto operator<=>(Tuple const&) const = default;
 };
 
-template <typename T0, typename T1, typename T2, typename T3, typename T4,
-          typename T5, typename T6, typename T7>
+template <typename T0,
+          typename T1,
+          typename T2,
+          typename T3,
+          typename T4,
+          typename T5,
+          typename T6,
+          typename T7>
 Tuple(T0, T1, T2, T3, T4, T5, T6, T7) -> Tuple<T0, T1, T2, T3, T4, T5, T6, T7>;
 
+} // namespace Meta
+
 template <typename... Ts>
-static constexpr u64 hash(Tuple<Ts...> const& v) {
-    auto res = hash(sizeof...(Ts));
+static constexpr u64 hash(Meta::Tuple<Ts...> const& v) {
+    auto res = ::hash(sizeof...(Ts));
     v.apply([&](auto const& v) { res = hash(res, v); });
     return res;
 }
+
+using Meta::Pair;
+using Meta::Tuple;

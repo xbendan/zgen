@@ -11,7 +11,7 @@ struct Cursor {
 
     constexpr Cursor() = default;
 
-    [[gnu::always_inline]] constexpr Cursor(Empty) : Cursor() { }
+    [[gnu::always_inline]] constexpr Cursor(None) : Cursor() { }
 
     [[gnu::always_inline]] constexpr Cursor(T const* ptr)
         : Cursor(ptr, ptr ? 1 : 0) { }

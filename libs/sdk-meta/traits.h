@@ -55,6 +55,11 @@ concept Computable = requires(T const& a, U const& b) {
     { a % b } -> Same<decltype(a % b)>;
 };
 
+template <typename Tp, typename T, typename U = T>
+concept Comparator = requires(Tp t, T const& a, U const& b) {
+    { t(a, b) } -> Meta::Same<bool>;
+};
+
 template <typename T, typename... Ts>
 concept Contains = (Same<T, Ts> or ...);
 
@@ -201,10 +206,10 @@ template <typename T>
 concept TrivialyCopyable = __is_trivially_copyable(T);
 
 template <typename T>
-concept Signed = __is_signed(T);
+concept Signed = Comparable<T> and (static_cast<T>(-1) < static_cast<T>(0));
 
 template <typename T>
-concept Unsigned = __is_unsigned(T);
+concept Unsigned = Comparable<T> and (static_cast<T>(0) < static_cast<T>(-1));
 
 template <typename T>
 concept Class = __is_class(T);
@@ -215,11 +220,23 @@ concept Union = __is_union(T);
 template <typename T>
 concept Enum = __is_enum(T);
 
-template <typename T>
-concept ScopedEnum = __is_scoped_enum(T);
+namespace _ {
+void test(...);
+void test(int) = delete;
+} // namespace _
 
 template <typename T>
-concept Integral = __is_integral(T);
+concept ScopedEnum = Enum<T> and requires { _::test(T {}); };
+
+template <typename T>
+constexpr inline bool _Integral = requires(T t, T* p, void (*f)(T)) {
+    reinterpret_cast<T>(t);
+    f(0);
+    p + t;
+};
+
+template <typename T>
+concept Integral = _Integral<T>;
 
 template <typename T>
 inline constexpr bool _Boolean = false;
@@ -231,16 +248,16 @@ template <typename T>
 concept Boolean = _Boolean<T>;
 
 template <typename T>
-concept Float = __is_floating_point(T);
+concept Float = Same<T, f32> or Same<T, f64> or Same<T, f128>;
 
 template <typename T>
 concept Arithmetic = Integral<T> or Float<T>;
 
-template <typename T>
-concept Array = __is_array(T);
+// template <typename T>
+// concept Array = __is_array(T);
 
 template <typename T>
-concept Void = __is_void(T);
+concept Void = Same<T, void>;
 
 template <typename T>
 concept Fundamental = Arithmetic<T> or Void<T>;
@@ -273,7 +290,9 @@ struct _IndexCast;
 
 template <typename Data, typename T>
 struct _IndexCast<Data, T> {
-    static always_inline auto eval(usize, Data* ptr, auto func) {
+    [[gnu::always_inline]] static inline auto eval(usize,
+                                                   Data* ptr,
+                                                   auto  func) {
         using U = CopyConst<Data, T>;
         return func(*reinterpret_cast<U*>(ptr));
     }
@@ -281,7 +300,9 @@ struct _IndexCast<Data, T> {
 
 template <typename Data, typename T, typename... Ts>
 struct _IndexCast<Data, T, Ts...> {
-    static always_inline auto eval(usize index, Data* ptr, auto func) {
+    [[gnu::always_inline]] static inline auto eval(usize index,
+                                                   Data* ptr,
+                                                   auto  func) {
         using U = CopyConst<Data, T>;
 
         return index == 0 ? func(*reinterpret_cast<U*>(ptr))
@@ -290,7 +311,9 @@ struct _IndexCast<Data, T, Ts...> {
 };
 
 template <typename... Ts>
-always_inline auto indexCast(usize index, auto* ptr, auto func) {
+[[gnu::always_inline]] inline auto indexCast(usize index,
+                                             auto* ptr,
+                                             auto  func) {
     return _IndexCast<RemoveRef<decltype(*ptr)>, Ts...>::eval(index, ptr, func);
 }
 

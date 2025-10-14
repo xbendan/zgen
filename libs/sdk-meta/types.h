@@ -1,5 +1,11 @@
 #pragma once
 
+#include <compare>
+#include <coroutine>
+#include <initializer_list>
+
+#define alignat(x) __attribute__((aligned(x)))
+
 using u8   = unsigned char;
 using u16  = unsigned short;
 using u32  = unsigned int;
@@ -11,8 +17,6 @@ using i16  = signed short;
 using i32  = signed int;
 using i64  = signed long long;
 using i128 = signed __int128;
-
-using uptr = unsigned long long;
 
 using byte  = u8;
 using word  = u16;
@@ -28,67 +32,8 @@ using f128 = long double;
 
 using nullptr_t = decltype(nullptr);
 
-// using FlatPtr = void*;
-
-struct [[gnu::packed]] FlatPtr {
-    FlatPtr() = default;
-
-    FlatPtr(uptr ptr) : m_ptr(reinterpret_cast<void*>(ptr)) { }
-
-    template <typename T>
-    FlatPtr(T* ptr) : m_ptr(reinterpret_cast<void*>(ptr)) { }
-
-    FlatPtr(FlatPtr const& other) : m_ptr(other.m_ptr) { }
-
-    FlatPtr(FlatPtr&& other) : m_ptr(other.m_ptr) { other.m_ptr = nullptr; }
-
-    FlatPtr& operator=(FlatPtr const& other) {
-        m_ptr = other.m_ptr;
-        return *this;
-    }
-
-    FlatPtr& operator=(FlatPtr&& other) {
-        m_ptr       = other.m_ptr;
-        other.m_ptr = nullptr;
-        return *this;
-    }
-
-    FlatPtr& operator=(void* ptr) {
-        m_ptr = ptr;
-        return *this;
-    }
-
-    FlatPtr& operator=(nullptr_t) {
-        m_ptr = nullptr;
-        return *this;
-    }
-
-    FlatPtr& operator=(uptr ptr) {
-        m_ptr = reinterpret_cast<void*>(ptr);
-        return *this;
-    }
-
-    operator uptr() const { return reinterpret_cast<uptr>(m_ptr); }
-
-    operator void*() const { return reinterpret_cast<void*>(m_ptr); }
-
-    operator FlatPtr*() const { return reinterpret_cast<FlatPtr*>(m_ptr); }
-
-    bool operator<=(FlatPtr const& other) const { return m_ptr <= other.m_ptr; }
-
-    bool operator>=(FlatPtr const& other) const { return m_ptr >= other.m_ptr; }
-
-    template <typename T>
-    operator T*() const {
-        return reinterpret_cast<T*>(m_ptr);
-    }
-
-    void* m_ptr;
-};
-static_assert(sizeof(FlatPtr) == sizeof(void*), "FlatPtr size mismatch");
-
-struct Empty {
-    constexpr Empty() = default;
+struct None {
+    constexpr None() = default;
 
     explicit constexpr operator bool() const noexcept { return false; }
 
@@ -97,15 +42,15 @@ struct Empty {
         return nullptr;
     }
 
-    constexpr bool operator==(Empty const&) const = default;
+    constexpr bool operator==(None const&) const = default;
 
-    constexpr bool operator!=(Empty const&) const = default;
+    constexpr bool operator!=(None const&) const = default;
 };
 
-constexpr inline Empty EMPTY {};
+constexpr inline None NONE {};
 
 template <typename T>
-bool operator==(Empty, T* ptr) {
+bool operator==(None, T* ptr) {
     return ptr == nullptr;
 }
 
@@ -116,3 +61,14 @@ struct _Move { };
 constexpr inline auto Copy = _Copy {};
 
 constexpr inline auto Move = _Move {};
+
+template <typename T>
+using InitializerList = std::initializer_list<T>;
+
+[[gnu::always_inline]] inline void* operator new(usize size, void* p) noexcept {
+    return p;
+}
+
+[[gnu::always_inline]] inline void operator delete(void*, void*) noexcept {
+    // do nothing
+}

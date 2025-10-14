@@ -31,4 +31,10 @@ using Ret = decltype(Meta::declval<U>()(
 template <typename F, typename... Args>
 concept Callable = requires(F f) { f(declval<Args>()...); };
 
+template <typename F, typename... Args>
+concept Predicate = Callable<F, Args...> and Boolean<Ret<F, Args...>>;
+
+template <typename F, typename... Args>
+concept Action = Callable<F, Args...> and Void<Ret<F, Args...>>;
+
 } // namespace Meta

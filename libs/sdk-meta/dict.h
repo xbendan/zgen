@@ -1,6 +1,6 @@
 #pragma once
 
-#include <sdk-math/misc.h>
+#include <sdk-math/funcs.h>
 #include <sdk-meta/hash.h>
 #include <sdk-meta/iter.h>
 #include <sdk-meta/opt.h>
@@ -9,7 +9,7 @@
 #include <sdk-meta/utility.h>
 #include <sdk-meta/vec.h>
 
-namespace Sdk {
+namespace Meta {
 
 template <typename K, typename V>
     requires(Meta::MoveConstructible<K> and requires(K const& key) {
@@ -73,7 +73,7 @@ struct Dict {
                 return i;
             }
         }
-        return Empty {};
+        return None {};
     }
 
     Subscript operator[](K const& key) {
@@ -191,7 +191,40 @@ struct Dict {
         }
     }
 
-    void put(K const& key, V const& value) { put(key, ::move(value)); };
+    void put(K const& key, V const& value) {
+        i32 hashCode = ::hash(key) & 0x7FFF'FFFF;
+        u32 bucketId = hashCode % _buckets.len();
+
+        u32 coll = 0;
+        for (i32 i = _buckets[bucketId]; i >= 0; i = _entries[i]._next) {
+            if ((_entries[i]._hashCode == hashCode)
+                and (key == _entries[i]._key)) {
+                new (&_entries[i]._value) V(::move(value));
+                _version++;
+                return;
+            }
+            coll++;
+        }
+
+        auto index = next();
+        if (not index or index == -1) [[unlikely]] {
+            panic("Dict::putIfAbsent(): No available index for new entry");
+        }
+        bucketId = hashCode % _buckets.len();
+
+        new (&_entries[*index]) Entry {
+            ._hashCode = hashCode,
+            ._next     = _buckets[bucketId],
+            ._key      = ::move(key),
+            ._value    = ::move(value),
+        };
+        _buckets[bucketId] = *index;
+        _version++;
+
+        if (coll > collisionThreshold) {
+            resize();
+        }
+    }
 
     void putIfAbsent(K const& key, V const& value) {
         if (find(key)) {
@@ -337,9 +370,9 @@ struct Dict {
 
     auto begin() -> decltype(iter()) { return iter(); }
 
-    auto end() -> Empty { return {}; }
+    auto end() -> None { return {}; }
 };
 
-} // namespace Sdk
+} // namespace Meta
 
-using Sdk::Dict;
+using Meta::Dict;

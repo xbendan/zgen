@@ -4,20 +4,21 @@
 #include <sdk-meta/manual.h>
 #include <sdk-meta/math.h>
 #include <sdk-meta/slice.h>
-#include <sdk-meta/std.h>
 
 template <typename T>
 struct Buf {
     using Inner = T;
 
-    Manual<T>* _buf {};
-    usize      _cap;
-    usize      _len;
+    Manual<T>* _buf { nullptr };
+    usize      _cap { 0 };
+    usize      _len { 0 };
 
     Buf(usize cap = 0) { ensure(cap); }
 
     Buf(_Move, T* buf, usize len)
-        : _buf(reinterpret_cast<Manual<T>*>(buf)), _cap(len), _len(len) { }
+        : _buf(reinterpret_cast<Manual<T>*>(buf)),
+          _cap(len),
+          _len(len) { }
 
     Buf(Sliceable<T> auto const& other) {
         ensure(other.len());
@@ -38,7 +39,9 @@ struct Buf {
     }
 
     Buf(Buf&& other) noexcept
-        : _buf(other._buf), _cap(other._cap), _len(other._len) {
+        : _buf(other._buf),
+          _cap(other._cap),
+          _len(other._len) {
         other._buf = nullptr;
         other._cap = 0;
         other._len = 0;
@@ -52,7 +55,7 @@ struct Buf {
         for (usize i = 0; i < _len; ++i) {
             _buf[i].dtor();
         }
-        delete[] reinterpret_cast<byte*>(_buf);
+        delete[] _buf;
     }
 
     Buf& operator=(Buf const& other) {

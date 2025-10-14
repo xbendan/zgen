@@ -1,39 +1,77 @@
 #pragma once
 
-#include <sdk-meta/box.h>
+#include <sdk-meta/buf.h>
 #include <sdk-meta/callable.h>
+#include <sdk-meta/index.h>
+#include <sdk-meta/math.h>
 #include <sdk-meta/opt.h>
 #include <sdk-meta/traits.h>
 #include <sdk-meta/tuple.h>
 #include <sdk-meta/types.h>
 
+namespace Meta {
 template <typename Fn>
 struct Iter {
     Fn next;
-    using Item = decltype(next()); // Opt<T> or T*
-    using V    = Meta::RemoveCvRef<decltype(*Meta::declval<Item>())>; // T
+    // Opt<T>, T*, or any type with operator bool() and operator*()
+    using Item = decltype(next());
+    using V    = Meta::RemoveCvRef<decltype(*Meta::declval<Item>())>;
 
-    // MARK: - Aggregation
+    // MARK: - [Aggregation]
 
-    constexpr auto reduce(auto f) -> Opt<V>
-        requires(Meta::Same<Meta::Ret<decltype(f), Item, Item>, V>)
-    {
+    constexpr auto reduce(Meta::Callable<V, V> auto f)
+        -> Opt<Meta::Ret<decltype(f), V, V>> {
         auto acc = next();
         if (not acc) {
-            return Empty {};
+            return None {};
         }
 
-        Opt<V> v = *acc;
-        for (auto item = next(); item; item = next()) {
-            v = f(v, item);
+        while (auto n = this->next()) {
+            acc = f(*acc, *n);
         }
-        return v;
-    }
+        return acc;
+    };
 
 #define reduce$(expr) reduce([&](auto x, auto y) { return expr; })
 
-    constexpr auto all(auto pred) const -> bool
-        requires(Meta::Boolean<Meta::Ret<decltype(pred), V>>)
+    constexpr auto reduce(Meta::Callable<V, V> auto f, V initial)
+        -> Opt<Meta::Ret<decltype(f), V, V>> {
+        auto acc = initial;
+
+        while (auto n = this->next()) {
+            acc = f(*acc, *n);
+        }
+        return acc;
+    };
+
+    constexpr auto reduce(Meta::Callable<V, V> auto f,
+                          Meta::Callable<V> auto    sel)
+        -> Opt<Meta::Ret<decltype(sel), Item>> {
+        auto acc = next();
+        if (not acc) {
+            return None {};
+        }
+
+        while (auto n = this->next()) {
+            acc = f(*acc, *n);
+        }
+        return sel(*acc);
+    };
+
+    constexpr auto reduce(Meta::Callable<V, V> auto f,
+                          V                         initial,
+                          Meta::Callable<V> auto    sel)
+        -> Opt<Meta::Ret<decltype(sel), V>> {
+        auto acc = initial;
+
+        while (auto n = this->next()) {
+            acc = f(*acc, *n);
+        }
+        return sel(acc);
+    };
+
+    constexpr auto all(Meta::Callable<V> auto pred) -> bool
+        requires(Meta::Boolean<Meta::Ret<decltype(pred), Item>>)
     {
         for (auto item = next(); item; item = next()) {
             if (not pred(*item)) {
@@ -43,10 +81,10 @@ struct Iter {
         return true;
     }
 
-#define all$(expr) all([&](auto x) { return expr; })
+#define all$(expr) all([&](auto it) { return expr; })
 
-    constexpr auto any(auto pred) const -> bool
-        requires(Meta::Boolean<Meta::Ret<decltype(pred), V>>)
+    constexpr auto any(Meta::Callable<V> auto pred) -> bool
+        requires(Meta::Boolean<Meta::Ret<decltype(pred), Item>>)
     {
         for (auto item = next(); item; item = next()) {
             if (pred(*item)) {
@@ -56,52 +94,11 @@ struct Iter {
         return false;
     }
 
-#define any$(expr) any([&](auto x) { return expr; })
+#define any$(expr) any([&](auto it) { return expr; })
 
-    constexpr auto count() const -> usize {
-        usize cnt = 0;
-        for (auto item = next(); item; item = next()) {
-            ++cnt;
-        }
-        return cnt;
-    }
+    // MARK: - [Mathematical]
 
-    constexpr auto contains(Item const& item) const -> bool
-        requires(Meta::Equatable<V>)
-    {
-        for (auto v = next(); v; v = next()) {
-            if (*v == *item) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    constexpr void forEach(auto f) {
-        for (auto item = next(); item; item = next()) {
-            f(*item);
-        }
-    }
-
-#define forEach$(expr) forEach([&](auto x) { expr; })
-
-    // MARK: - Arithmetic
-
-    constexpr auto sum() const -> Item
-        requires(Meta::Computable<V>)
-    {
-        Item sum {};
-        for (auto item = next(); item; item = next()) {
-            if (not sum) {
-                sum = *item;
-            } else {
-                sum = *sum + *item;
-            }
-        }
-        return sum;
-    }
-
-    constexpr auto avg() const -> Item
+    constexpr auto avg() -> Item
         requires(Meta::Computable<V>)
     {
         Item  sum {};
@@ -115,221 +112,189 @@ struct Iter {
             ++count;
         }
         if (count == 0) {
-            return Empty {};
+            return None {};
         }
         return sum / count;
     }
 
+    constexpr auto avg(Meta::Callable<V> auto sel) -> decltype(auto)
+        requires(Meta::Computable<Meta::Ret<decltype(sel), V>>)
+    {
+        using R = Meta::Ret<decltype(sel), V>;
+
+        R     sum {};
+        usize count = 0;
+        for (auto item = next(); item; item = next()) {
+            if (not sum) {
+                sum = sel(*item);
+            } else {
+                sum = sum + sel(*item);
+            }
+            ++count;
+        }
+        if (count == 0) {
+            return NONE;
+        }
+        return sum / count;
+    }
+
+#define avg$(expr) avg([&](auto it) { return expr; })
+
+    constexpr auto sum() -> Item
+        requires(Meta::Computable<V>)
+    {
+        Item sum {};
+        for (auto item = next(); item; item = next()) {
+            if (not sum) {
+                sum = *item;
+            } else {
+                sum = *sum + *item;
+            }
+        }
+        return sum;
+    }
+
+    constexpr auto sum(Meta::Callable<V> auto sel) -> decltype(auto)
+        requires(Meta::Computable<Meta::Ret<decltype(sel), V>>)
+    {
+        using R = Meta::Ret<decltype(sel), V>;
+
+        R sum {};
+        for (auto item = next(); item; item = next()) {
+            if (not sum) {
+                sum = sel(*item);
+            } else {
+                sum = sum + sel(*item);
+            }
+        }
+        return sum;
+    }
+
+#define sum$(expr) sum([&](auto it) { return expr; })
+
     constexpr auto max() -> Item
         requires(Meta::Comparable<V>)
     {
-        Item maxItem {};
+        Item max {};
         for (auto item = next(); item; item = next()) {
-            if (not maxItem or *item > *maxItem) {
-                maxItem = *item;
+            if (not max) {
+                max = *item;
+            } else {
+                max = ::max(max, *item);
             }
         }
-        return maxItem;
+        return max;
     }
+
+    constexpr auto max(Meta::Callable<V> auto sel) -> Item
+        requires(Meta::Comparable<Meta::Ret<decltype(sel), V>>)
+    {
+        using R = Meta::Ret<decltype(sel), V>;
+
+        Item max {};
+        R    maxKey {};
+        for (auto item = next(); item; item = next()) {
+            if (not max) {
+                max    = *item;
+                maxKey = sel(*item);
+            } else {
+                auto key = sel(*item);
+                if (key > maxKey) {
+                    max    = *item;
+                    maxKey = key;
+                }
+            }
+        }
+        return max;
+    }
+
+#define max$(expr) max([&](auto it) { return expr; })
 
     constexpr auto min() -> Item
         requires(Meta::Comparable<V>)
     {
-        Item minItem {};
+        Item min {};
         for (auto item = next(); item; item = next()) {
-            if (not minItem or *item < *minItem) {
-                minItem = *item;
+            if (not min) {
+                min = *item;
+            } else {
+                min = ::min(min, *item);
             }
         }
-        return minItem;
+        return min;
     }
 
-    constexpr auto max(auto f) -> Item
-        requires(Meta::Computable<Meta::Ret<decltype(f), V>>)
+    constexpr auto min(Meta::Callable<V> auto sel) -> Item
+        requires(Meta::Comparable<Meta::Ret<decltype(sel), V>>)
     {
-        Item                           maxItem {};
-        Opt<Meta::Ret<decltype(f), V>> maxKey {};
+        using R = Meta::Ret<decltype(sel), V>;
 
+        Item min {};
+        R    minKey {};
         for (auto item = next(); item; item = next()) {
-            auto key = f(*item);
-            if (not maxKey or key > *maxKey) {
-                maxKey  = key;
-                maxItem = item;
+            if (not min) {
+                min    = *item;
+                minKey = sel(*item);
+            } else {
+                auto key = sel(*item);
+                if (key < minKey) {
+                    min    = *item;
+                    minKey = key;
+                }
             }
         }
-        return maxItem;
+        return min;
     }
 
-#define max$(expr) max([&](auto x) { return expr; })
+#define min$(expr) min([&](auto it) { return expr; })
 
-    constexpr auto min(auto f) -> Item
-        requires(Meta::Computable<Meta::Ret<decltype(f), V>>)
+    // MARK: - [Projection]
+
+    template <typename U>
+        requires(Meta::Convertible<V, U>)
+    constexpr auto cast() {
+        auto n = [=, *this]() mutable -> Opt<U> {
+            if (auto item = next()) {
+                return static_cast<U>(*item);
+            }
+            return NONE;
+        };
+        return Iter<decltype(n)> { n };
+    }
+
+    constexpr auto chunk(usize size) {
+        if (size == 0) [[unlikely]] {
+            panic("Iter::chunk: size must be greater than 0");
+        }
+
+        // TODO: validate algorithm for correctness and efficiency
+        auto n
+            = [=, *this, buf = Buf<V>(size), count = 0] mutable -> Opt<Buf<V>> {
+            while (count < size) {
+                if (auto item = next()) {
+                    buf.emplace(count++, *item);
+                } else
+                    break;
+            }
+
+            if (count == 0) {
+                return NONE;
+            }
+
+            if (count == size) {
+                count = 0;
+                return ::move(buf);
+            }
+        };
+        return Iter<decltype(n)> { n };
+    }
+
+    constexpr auto concat(auto it)
+        requires(Meta::Same<Item, typename decltype(it)::Item>)
     {
-        Item                           minItem {};
-        Opt<Meta::Ret<decltype(f), V>> minKey {};
-
-        for (auto item = next(); item; item = next()) {
-            auto key = f(*item);
-            if (not minKey or key < *minKey) {
-                minKey  = key;
-                minItem = item;
-            }
-        }
-        return minItem;
-    }
-
-#define min$(expr) min([&](auto x) { return expr; })
-
-    // MARK: - Projection
-
-    constexpr auto map(auto f) {
-        using R = Meta::Ret<decltype(f), V>;
-
-        auto n = [=, *this] mutable -> Opt<R> {
-            auto item = next();
-            if (not item) {
-                return Empty {};
-            }
-
-            return f(*item);
-        };
-        return Iter<decltype(n)> { n };
-    }
-
-#define map$(expr) map([&](auto x) { return expr; })
-
-    constexpr auto filter(auto pred) {
-        auto n = [=, *this] mutable -> Item {
-            auto v = next();
-            if (not v) {
-                return Empty {};
-            }
-
-            while (not pred(*v)) {
-                v = next();
-                if (not v) {
-                    return Empty {};
-                }
-            }
-
-            return v;
-        };
-
-        return Iter<decltype(n)> { n };
-    }
-
-#define filter$(expr) filter([&](auto x) { return expr; })
-
-    constexpr auto index() const {
-        auto n = [=, *this, i = usize { 0 }] mutable -> Opt<Pair<usize, V>> {
-            auto item = next();
-            if (not item) {
-                return Empty {};
-            }
-            return Pair { i++, *item };
-        };
-        return Iter<decltype(n)> { n };
-    }
-
-    constexpr auto skip(usize count) const {
-        auto n = [=, *this, skipped = false] mutable -> Item {
-            if (skipped) {
-                return next();
-            }
-
-            for (usize i = 0; i < count; ++i) {
-                auto item = next();
-                if (not item) {
-                    return Empty {};
-                }
-            }
-            skipped = true;
-            return next();
-        };
-        return Iter<decltype(n)> { n };
-    }
-
-    constexpr auto limit(usize count) const {
-        auto n = [=, *this, taken = usize { 0 }] mutable -> Item {
-            if (taken >= count) {
-                return Empty {};
-            }
-
-            auto item = next();
-            if (not item) {
-                return Empty {};
-            }
-
-            ++taken;
-            return item;
-        };
-        return Iter<decltype(n)> { n };
-    }
-
-    constexpr auto repeat(usize n) const {
-        return Iter { [start = *this, curr = *this, i = 0, n] mutable {
-            auto v = curr.next();
-
-            if (not v and i < n) {
-                curr = start;
-                i++;
-                v = curr.next();
-            }
-
-            return v;
-        } };
-    }
-
-    // constexpr auto prepend(V const& v) {
-    //     auto n = [=, *this, first = true] mutable -> Item {
-    //         if (first) {
-    //             first = false;
-    //             return Item { v };
-    //         }
-
-    //         return next();
-    //     };
-    //     return Iter<decltype(n)> { n };
-    // }
-
-    constexpr auto prepend(Iter iter) {
-        auto n = [=, *this, l = iter, consumed = false] mutable -> Item {
+        auto n = [=, *this, consumed = false]() mutable -> Item {
             if (not consumed) {
-                auto item = l.next();
-                if (item) {
-                    return item;
-                } else {
-                    consumed = true;
-                }
-            }
-
-            return next();
-        };
-        return Iter<decltype(n)> { n };
-    }
-
-    // constexpr auto append(V const& v) {
-    //     auto n = [=, *this, last = false] mutable -> Item {
-    //         if (last) {
-    //             return Empty {};
-    //         }
-
-    //         auto item = next();
-    //         if (not item) {
-    //             last = true;
-    //             return Item { v };
-    //         }
-
-    //         return item;
-    //     };
-    //     return Iter<decltype(n)> { n };
-    // }
-
-    constexpr auto append(auto it) {
-        auto n = [=, *this, consumed = false] mutable -> Item {
-            if (not consumed) {
-                auto item = next();
-                if (item) {
+                if (auto item = next(); item) {
                     return item;
                 }
                 consumed = true;
@@ -340,27 +305,211 @@ struct Iter {
         return Iter<decltype(n)> { n };
     }
 
-    // MARK: - Index Access
+    constexpr auto prepend(Item& v) {
+        auto n = [=, *this, consumed = false]() mutable -> Item {
+            if (not consumed) {
+                if (auto item = next(); item) {
+                    return item;
+                }
+                consumed = true;
+            }
+
+            return v;
+        };
+        return Iter<decltype(n)> { n };
+    }
+
+    constexpr auto append(Item& v) {
+        auto n = [=, *this, consumed = false]() mutable -> Item {
+            if (not consumed) {
+                if (auto item = next(); item) {
+                    return item;
+                }
+                consumed = true;
+            }
+
+            return v;
+        };
+        return Iter<decltype(n)> { n };
+    }
+
+    constexpr auto select(Meta::Callable<V> auto f) {
+        auto n = [=, *this]() mutable -> Opt<Meta::Ret<decltype(f), V>> {
+            if (auto item = next()) {
+                return f(*item);
+            }
+            return NONE;
+        };
+        return Iter<decltype(n)> { n };
+    }
+
+#define select$(expr) select([&](auto it) -> decltype(expr) { return expr; })
+
+    constexpr auto select(Meta::Callable<usize, Meta::Index> auto f) {
+        using R = Meta::Ret<decltype(f), usize, Meta::Index>;
+
+        auto n = [=, *this, index = usize { 0 }] mutable -> Opt<R> {
+            if (auto item = next()) {
+                return f(index++, Index { false, index - 1 });
+            }
+            return NONE;
+        };
+        return Iter<decltype(n)> { n };
+    }
+
+#define select$i(expr) select([&](auto it, auto index) { return expr; })
+
+    constexpr auto filter(Meta::Callable<V> auto pred) {
+        auto n = [=, *this]() mutable -> Item {
+            auto v = next();
+            if (not v) {
+                return NONE;
+            }
+
+            while (v and not pred(*v)) {
+                v = next();
+            }
+            return v;
+        };
+        return Iter<decltype(n)> { n };
+    }
+
+#define filter$(expr) filter([&](auto it) -> bool { return expr; })
+
+    // TODO: implement selectMany
+
+    constexpr auto selectMany(Meta::Callable<Item> auto f) const;
+
+    constexpr auto selectMany(Meta::Callable<usize, Meta::Index> auto f) const;
+
+    constexpr auto filter(Meta::Callable<usize, V> auto pred) {
+        auto n = [=, *this, index = usize { 0 }] mutable -> Item {
+            while (true) {
+                auto item = next();
+                if (not item) {
+                    return NONE;
+                }
+                if (pred(index++, *item)) {
+                    return item;
+                }
+            }
+        };
+        return Iter<decltype(n)> { n };
+    }
+
+#define filter$i(expr) filter([&](auto it, auto index) { return expr; })
+
+    constexpr auto distinct() const;
+
+    // MARK: - [Consumption]
+
+    constexpr auto exists() const -> bool { return next() != NONE; }
+
+    constexpr auto count() const -> usize {
+        usize cnt = 0;
+        for (auto item = next(); item; item = next()) {
+            ++cnt;
+        }
+        return cnt;
+    }
+
+    constexpr auto count(Meta::Predicate<Item> auto pred) const -> usize {
+        usize cnt = 0;
+        for (auto item = next(); item; item = next()) {
+            if (pred(*item)) {
+                ++cnt;
+            }
+        }
+        return cnt;
+    }
+
+#define count$(expr) count([&](auto it) { return expr; })
+
+    constexpr auto defaultIfEmpty(V const& def) const -> Item {
+        if (auto v = next()) {
+            return v;
+        }
+        return def;
+    }
+
+    constexpr auto defaultIfEmpty(Meta::Callable<> auto def) const -> Item
+        requires(Meta::Same<Item, decltype(def())>)
+    {
+        if (auto v = next()) {
+            return v;
+        }
+        return def();
+    }
+
+#define defaultIfEmpty$(expr) defaultIfEmpty([&]() { return expr; })
+
+    constexpr auto defaultIfEmpty() const -> Item {
+        if (auto v = next()) {
+            return v;
+        }
+        return None {};
+    }
+
+    constexpr auto sequenceEquals(auto it) const
+        requires(Meta::Same<Item, typename decltype(it)::Item>
+                 and Meta::Equatable<V>)
+    {
+        while (true) {
+            auto a = next();
+            auto b = it.next();
+
+            if (not a and not b) {
+                return true;
+            }
+
+            if (not a or not b) {
+                return false;
+            }
+
+            if (*a != *b) {
+                return false;
+            }
+        }
+    }
+
+    constexpr auto forEach(auto f) -> void {
+        for (auto item = next(); item; item = next()) {
+            f(*item);
+        }
+    }
+
+#define forEach$(expr) forEach([&](auto it) { expr; })
+
+    // MARK: - [Index Access]
 
     constexpr auto elementAt(usize index) const -> Item {
         if (index < 0) [[unlikely]] {
             panic("Iter::elementAt: index out of bounds");
         }
-
         usize count = 0;
         for (auto item = next(); item; item = next()) {
             if (count == index) {
-                return *item;
+                return item;
             }
             ++count;
         }
+        return None {};
+    }
 
-        return Empty {};
+    constexpr auto elementAt(Meta::Index index) const -> Item {
+        usize i = index.val;
+        if (index.inverse) {
+            decltype(*this) copy = *this;
+
+            i = copy.count() - i - 1;
+        }
+        return elementAt(i);
     }
 
     constexpr auto elementAtOrDefault(usize index, Item const& def) const
         -> Item {
         if (index < 0) [[unlikely]] {
+            // TODO: change to log warning
             panic("Iter::elementAtOrDefault: index out of bounds");
         }
 
@@ -375,62 +524,191 @@ struct Iter {
         return def;
     }
 
-    // MARK: - First & Last
+    constexpr auto elementAtOrDefault(Meta::Index index, Item const& def) const
+        -> Item {
+        usize i = index.val;
+        if (index.inverse) {
+            decltype(*this) copy = *this;
+
+            i = copy.count() - i - 1;
+        }
+        return elementAtOrDefault(i, def);
+    }
+
+    // MARK: - [Union & Intersection]
+
+    constexpr auto except(auto it) const
+        requires(Meta::Same<Item, typename decltype(it)::Item>
+                 and Meta::Comparable<V>)
+    {
+        // TODO: implement
+    }
+
+    constexpr auto intersect(auto it) const
+        requires(Meta::Same<Item, typename decltype(it)::Item>
+                 and Meta::Comparable<V>)
+    {
+        // TODO: implement
+    }
+
+    // MARK: - [First & Last]
 
     constexpr auto first() const -> Opt<V> {
         auto item = next();
         if (item) {
             return *item;
         }
-        return Empty {};
+        return None {};
     }
 
-    constexpr auto first(auto f) -> Opt<V> {
+    constexpr auto first(Meta::Predicate<Item> auto f) -> Opt<V> {
         for (auto item = next(); item; item = next()) {
             if (f(*item)) {
                 return *item;
             }
         }
-        return Empty {};
+        return None {};
     }
 
-#define first$(expr) first([&](auto it) { return expr; })
+#define first$(expr) first([&](auto it) -> bool { return expr; })
 
-    constexpr auto firstOrDefault(Item const& def) const -> Item {
-        auto item = next();
-        if (item) {
-            return *item;
-        }
-        return def;
-    }
-
-    constexpr auto last() const -> Item {
-        Item lastItem;
+    constexpr auto last() const -> Opt<V> {
+        Opt<V> last {};
         for (auto item = next(); item; item = next()) {
-            lastItem = *item;
+            last = *item;
         }
-        return lastItem;
+        return last;
     }
 
-    constexpr auto lastOrDefault(Item const& def) const -> Item {
-        Item lastItem;
+    constexpr auto last(Meta::Predicate<Item> auto f) const -> Opt<V> {
+        Opt<V> last {};
         for (auto item = next(); item; item = next()) {
-            lastItem = *item;
+            if (f(*item)) {
+                last = *item;
+            }
         }
-        return lastItem.unwrapOrElse(def);
+        return last;
     }
 
-    // MARK: - Collect
+#define last$(expr) last([&](auto it) { return expr; })
 
-    template <typename C>
-    constexpr auto collect(C& c) -> void {
-        forEach([&](auto v) { c.pushBack(v); });
+    constexpr auto lastOrDefault(V const& def) const -> V {
+        Opt<V> last {};
+        for (auto item = next(); item; item = next()) {
+            last = *item;
+        }
+        return last.unwrapOrElse(def);
     }
 
-    template <typename C>
-    constexpr auto collect() -> Opt<Box<C>> {
-        auto c = makeBox<C>();
+    // MARK: - [Grouping]
+
+    constexpr auto groupBy(Meta::Callable<Item> auto keySelector) const;
+
+    constexpr auto groupBy(Meta::Callable<Item> auto keySelector,
+                           Meta::Callable<Item> auto elementSelector) const;
+
+    constexpr auto groupJoin() const;
+
+    constexpr auto index() {
+        auto n = [=,
+                  *this,
+                  index = usize { 0 }] mutable -> Opt<Meta::Pair<usize, V>> {
+            if (auto item = next()) {
+                return Meta::Pair { index++, *item };
+            }
+            return NONE;
+        };
+        return Iter<decltype(n)> { n };
     }
+
+    // MARK: - [Sorting]
+
+    constexpr auto order() const -> decltype(auto)
+        requires(Meta::Comparable<V>);
+
+    constexpr auto order(Meta::Comparator<V> auto cmp) const -> decltype(auto);
+
+    constexpr auto orderBy(Meta::Callable<Item> auto keySelector) const
+        -> decltype(auto)
+        requires(Meta::Comparable<Meta::Ret<decltype(keySelector), V>>);
+
+    constexpr auto orderBy(
+        Meta::Callable<Item> auto                                  keySelector,
+        Meta::Comparator<Meta::Ret<decltype(keySelector), V>> auto cmp) const
+        -> decltype(auto);
+
+    constexpr auto orderDescending() const -> decltype(auto)
+        requires(Meta::Comparable<V>);
+
+    constexpr auto orderDescending(Meta::Comparator<V> auto cmp) const
+        -> decltype(auto);
+
+    constexpr auto orderByDescending(
+        Meta::Callable<Item> auto keySelector) const -> decltype(auto)
+        requires(Meta::Comparable<Meta::Ret<decltype(keySelector), V>>);
+
+    constexpr auto orderByDescending(
+        Meta::Callable<Item> auto                                  keySelector,
+        Meta::Comparator<Meta::Ret<decltype(keySelector), V>> auto cmp) const
+        -> decltype(auto);
+
+    // MARK: - [Skip & Limit]
+
+    constexpr auto skip(usize count) {
+        auto n = [=, *this, skipped = usize { 0 }] mutable -> Item {
+            while (skipped < count) {
+                auto item = next();
+                if (not item) {
+                    return NONE;
+                }
+                ++skipped;
+            }
+            return next();
+        };
+        return Iter<decltype(n)> { n };
+    }
+
+    constexpr auto limit(usize count) {
+        auto n = [=, *this, taken = usize { 0 }] mutable -> Item {
+            if (taken >= count) {
+                return NONE;
+            }
+            ++taken;
+            return next();
+        };
+        return Iter<decltype(n)> { n };
+    }
+
+    constexpr auto repeat(usize count) {
+        auto n = [start = *this, curr = *this, i = 0, count] mutable {
+            auto v = curr.next();
+
+            if (not v and i < count) {
+                curr = start;
+                i++;
+                v = curr.next();
+            }
+
+            return v;
+        };
+        return Iter<decltype(n)> { n };
+    }
+
+    constexpr auto cycle() {
+        auto n = [start = *this, curr = *this]() mutable -> Item {
+            auto v = curr.next();
+
+            if (not v) {
+                curr = start;
+                v    = curr.next();
+            }
+
+            return v;
+        };
+        return Iter<decltype(n)> { n };
+    }
+
+    // MARK: - [begin, end]
 
     struct It {
         Item curr;
@@ -443,77 +721,80 @@ struct Iter {
             return *this;
         }
 
-        constexpr bool operator!=(Empty) { return curr != Empty {}; }
+        constexpr bool operator!=(None) { return curr != NONE; }
     };
 
     constexpr It begin() { return It { next(), *this }; }
 
-    constexpr Empty end() { return Empty {}; }
+    constexpr None end() { return NONE; }
 };
 
-template <typename T>
-constexpr auto single(T value) {
-    return Iter<Empty> { [value, end = false] mutable {
-        if (end) {
-            return Empty {};
-        }
+// MARK: - Instantiations
 
+constexpr auto single(auto value) {
+    auto n = [value, end = false] mutable {
+        if (end) {
+            return NONE;
+        }
         end = true;
         return value;
-    } };
+    };
+    return Iter<decltype(n)> { n };
 }
 
-template <typename T>
-constexpr auto repeat(T value, usize count) {
-    return Iter { [value, count] mutable -> Opt<T> {
+constexpr auto repeat(auto value, usize count) {
+    auto n = [value, count] mutable -> Opt<decltype(value)> {
         if (count == 0) {
             return {};
         }
-
         count--;
         return value;
-    } };
-}
-
-template <typename T>
-constexpr auto range(T end) {
-    return Iter { [value = static_cast<T>(0), end] mutable -> Opt<T> {
-        if (value >= end)
-            return Empty {};
-        return value++;
-    } };
-}
-
-template <typename T>
-constexpr auto range(T start, T end) {
-    return Iter { [value = start, start, end] mutable -> Opt<T> {
-        if (value >= end) {
-            return {};
-        }
-
-        auto result = value;
-        if (start < end) {
-            value++;
-        } else {
-            value++;
-        }
-        return result;
-    } };
+    };
+    return Iter<decltype(n)> { n };
 }
 
 template <typename T>
 constexpr auto range(T start, T end, T step) {
-    return Iter { [value = start, start, end, step] mutable -> Opt<T> {
-        if (value >= end) {
-            return {};
+    if (step == 0) [[unlikely]] {
+        panic("Iter::range: step must be non-zero");
+    }
+
+    auto n = [value = start, end, step]() mutable -> Opt<T> {
+        if ((step > 0 and value >= end) or (step < 0 and value <= end)) {
+            return NONE;
+        }
+        T current = value;
+        value += step;
+        return current;
+    };
+    return Iter<decltype(n)> { n };
+}
+
+template <typename T>
+constexpr auto range(T end) {
+    return range(static_cast<T>(0), end, static_cast<T>(1));
+}
+
+template <typename T>
+constexpr auto range(T start, T end) {
+    return range(start, end, static_cast<T>(1));
+}
+
+template <Sliceable S>
+constexpr auto iter(S const& slice) {
+    return Iter([&slice, i = 0uz] mutable -> typename S::Inner const* {
+        if (i >= slice.len()) {
+            return nullptr;
         }
 
-        auto result = value;
-        if (start < end) {
-            value += step;
-        } else {
-            value -= step;
-        }
-        return result;
-    } };
+        return &slice.buf()[i++];
+    });
 }
+
+} // namespace Meta
+
+using Meta::iter;
+using Meta::Iter;
+using Meta::range;
+using Meta::repeat;
+using Meta::single;

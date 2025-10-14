@@ -19,59 +19,36 @@ struct Bits {
 
     ~Bits() = default;
 
-    struct Subscript {
-        Bits& bits;
-        usize index;
-
-        Subscript(Bits& bits, usize index) : bits(bits), index(index) { }
-
-        operator bool() const {
-            return (bits._buf[index / 8] & (1 << (index % 8))) != 0;
-        }
-
-        Subscript& operator=(bool value) {
-            if (value) {
-                bits._buf[index / 8] |= (1 << (index % 8));
-            } else {
-                bits._buf[index / 8] &= ~(1 << (index % 8));
-            }
-            return *this;
-        }
-    };
-
-    Subscript operator[](usize index) {
-        if (index >= len()) {
-            // panic("Bits index out of range: {} >= {}", index, _len);
-        }
-        return { *this, index };
-    }
+    bool operator[](usize index) { return get(index); }
 
     bool get(usize index) const {
         if (index >= len()) {
-            // panic("Bits index out of range: {} >= {}", index, _len);
+            panic("Bits::get: index out of range");
         }
         return (_buf[index / 8] & (1 << (index % 8))) != 0;
     }
 
-    void set(usize index, bool value) {
+    template <bool T>
+    void set(usize index) {
         if (index >= len()) {
-            // panic("Bits index out of range: {} >= {}", index, _len);
+            panic("Bits::set: index out of range");
         }
-        if (value) {
-            _buf[index / 8] |= (1 << (index % 8));
 
+        if constexpr (T) {
+            _buf[index / 8] |= (1 << (index % 8));
         } else {
             _buf[index / 8] &= ~(1 << (index % 8));
         }
     }
 
-    void setRange(BitsRange range, bool value) {
+    template <bool T>
+    void setRange(BitsRange range) {
         if (range.end() > len()) {
             // panic("Bits range out of bounds: {} + {} > {}", range._start,
             // range._size, _len * 8);
         }
         for (usize i = 0; i < range._size; ++i) {
-            (*this)[range._start + i] = value;
+            set<T>(range._start + i);
         }
         // TODO: Improve performance by categories operations
     }
@@ -82,7 +59,7 @@ struct Bits {
         start = min(start, len());
 
         if (not len() or not count) {
-            return Empty {};
+            return None {};
         }
 
         BitsRange range = {};
@@ -101,12 +78,12 @@ struct Bits {
             }
 
             if (range._size == count) {
-                setRange(range, true);
+                setRange<true>(range);
                 return range;
             }
         }
 
-        return EMPTY;
+        return NONE;
     }
 
     usize used() const {
