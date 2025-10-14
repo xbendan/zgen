@@ -1,8 +1,8 @@
 #pragma once
 
-#include <sdk-cli/style.h>
 #include <sdk-io/text.h>
 #include <sdk-meta/types.h>
+#include <sdk-terminal/style.h>
 
 namespace Sdk::Cli {
 
@@ -23,8 +23,10 @@ struct CanvasTextEncoder : public Io::TextEncoderBase<> {
     bool    autoNewline { true };
     Style   style;
 
-    CanvasTextEncoder(Canvas& canvas, u32 x = 0, u32 y = 0,
-                      Style style = Style::Default)
+    CanvasTextEncoder(Canvas& canvas,
+                      u32     x     = 0,
+                      u32     y     = 0,
+                      Style   style = Style::Default)
         : canvas(canvas),
           x(x),
           y(y) { }

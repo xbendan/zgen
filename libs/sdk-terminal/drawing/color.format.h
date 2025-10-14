@@ -2,7 +2,7 @@
 
 #include <sdk-terminal/drawing/color.ansi.h>
 #include <sdk-terminal/drawing/color.h>
-#include <sdk-text/fmt/base.h>
+#include <sdk-text/format.h>
 
 namespace Sdk::Text {
 

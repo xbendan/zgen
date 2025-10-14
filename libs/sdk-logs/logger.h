@@ -1,10 +1,10 @@
 #pragma once
 
-#include <sdk-cli/style.h>
 #include <sdk-io/std.h>
 #include <sdk-meta/flags.h>
 #include <sdk-meta/types.h>
-#include <sdk-text/fmt.h>
+#include <sdk-terminal/style.h>
+#include <sdk-text/format.h>
 #include <sdk-text/str.h>
 
 namespace Sdk {
@@ -15,15 +15,15 @@ struct Loc {
     usize line {};
     usize column {};
 
-    static constexpr Loc current(Str   file   = __builtin_FILE(),
-                                 Str   func   = __builtin_FUNCTION(),
-                                 usize line   = __builtin_LINE(),
-                                 usize column = __builtin_COLUMN()) {
+    static constexpr Loc current(Str   file   = __FILE__,
+                                 Str   func   = __PRETTY_FUNCTION__,
+                                 usize line   = __LINE__,
+                                 usize column = 0) {
         return { file, func, line, column };
     }
 };
 
-struct [[gnu::packed]] Level {
+struct Level {
     i8          val;
     char const* name;
     Cli::Style  style = Cli::Style::Default;
@@ -34,7 +34,6 @@ struct [[gnu::packed]] Level {
 
     constexpr operator i8() const { return val; }
 };
-static_assert(sizeof(Level) == 12, "Level size must be 12 bytes");
 
 using Graph::iRgb;
 
@@ -62,19 +61,28 @@ inline void _log(Level level, Str fmt, Text::_Args& va) {
     }
     LockScoped lock(_lock);
 
-    auto& dest = level >= ERROR ? **Sdk::err() : **Sdk::out();
+    auto& dest = (level >= ERROR) ? Sdk::err().unwrap() : Sdk::out().unwrap();
 
-    catch$(Text::format(dest, "{}", Cli::Style::Default));
+    // catch$(Text::format(dest, "{}", Cli::Style::Default));
     catch$(Text::format(
         dest, "[{}", Text::aligned(level.name, Text::Align::LEFT, 5)));
-    if (_useTime) {
-        // catch$(Text::format(dest, ", {}", Text::aligned(level.name, Text::Align::LEFT, 12)));
-    }
-    catch$(Text::format(dest, "]: "));
+    // catch$(Text::format(dest, "[{}", level.name));
+    // if (_useTime) {
+    //     // catch$(Text::format(dest, ", {}", Text::aligned(level.name, Text::Align::LEFT, 12)));
+    // }
+    catch$(Text::format(dest, "] "));
     catch$(Text::_format(dest, fmt, va));
-    catch$(Text::format(dest, "{}\n", Cli::Style::Default));
+    // catch$(Text::format(dest, "{}\n", Cli::Style::Default));
 
-    catch$(dest.flush());
+    // catch$(dest.flush());
+}
+
+inline void logEmptyLines(usize n) {
+    auto& dest = Sdk::out().unwrap();
+    for (usize i = 0; i < n; i++) {
+        catch$(Text::format(
+            dest, "[{}]\n", Text::aligned(INFO.name, Text::Align::LEFT, 5)));
+    }
 }
 
 inline void logInfo(Str format, auto&&... va) {
@@ -105,6 +113,7 @@ inline void logError(Str format, auto&&... va) {
 
 } // namespace Sdk
 
+using Sdk::Loc;
 using Sdk::logDebug;
 using Sdk::logError;
 using Sdk::logFatal;

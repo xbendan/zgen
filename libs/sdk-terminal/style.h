@@ -3,7 +3,7 @@
 #include <sdk-graph/format.h>
 #include <sdk-io/text.h>
 #include <sdk-meta/res.h>
-#include <sdk-text/fmt.h>
+#include <sdk-text/format.h>
 #include <sdk-text/runes.h>
 #include <sdk-text/style.h>
 
