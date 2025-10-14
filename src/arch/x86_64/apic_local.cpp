@@ -1,7 +1,7 @@
 #include <arch/x86_64/apic.h>
 #include <sdk-logs/logger.h>
 
-namespace Hal::x86_64::Apic {
+namespace Zgen::Hal::x86_64::Apic {
 
 Res<> Local::init() {
     u64 base;
@@ -42,4 +42,4 @@ Res<> Local::send(Dest dest, Message message, u8 vec) {
     return send(val);
 }
 
-} // namespace Hal::x86_64::Apic
+} // namespace Zgen::Hal::x86_64::Apic
