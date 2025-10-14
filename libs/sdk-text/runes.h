@@ -108,6 +108,13 @@ struct _Runes {
         return result;
     }
 
+    auto& begin() {
+        _begin = _cur;
+        return *this;
+    }
+
+    _Str<E> end() { return { _begin, _cur }; }
+
     auto defer() {
         return ArmedDefer([&, saved = *this] { *this = saved; });
     }
@@ -126,7 +133,7 @@ auto iter(S const& slice) {
     Cursor<U> cursor(slice);
     return Iter([cursor] mutable -> Opt<Sdk::Text::Rune> {
         if (cursor.ended()) {
-            return Empty {};
+            return None {};
         }
 
         Sdk::Text::Rune r;

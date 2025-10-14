@@ -3,18 +3,20 @@
 #include <sdk-meta/buf.h>
 #include <sdk-meta/iter.h>
 #include <sdk-meta/types.h>
+#include <sdk-meta/vec.h>
 #include <sdk-text/str.h>
 
 namespace Sdk::Text {
 
-template <StaticEncoding E>
+template <StaticEncoding E, usize N = 64>
 struct _StringBuilder {
-    Buf<typename E::Unit> _buf {};
+    InlineBuf<typename E::Unit, N> _buf {};
 
     _StringBuilder(usize cap = 16) : _buf(cap) { }
 
     _StringBuilder(String&& str)
-        : _buf(Move, Meta::exchange(str._buf, nullptr),
+        : _buf(Move,
+               Meta::exchange(str._buf, nullptr),
                Meta::exchange(str._len, 0)) { }
 
     void ensure(usize cap) {
@@ -47,7 +49,7 @@ struct _StringBuilder {
         _buf.trunc(_buf.len() - n);
     }
 
-    usize len() const { return _buf.size(); }
+    usize len() const { return _buf.len(); }
 
     _Str<E> str() const { return _buf; }
 
@@ -62,6 +64,7 @@ struct _StringBuilder {
     }
 };
 
-using StringBuilder = _StringBuilder<typename Sys::Encoding>;
+template <usize N = 64>
+using StringBuilder = _StringBuilder<typename Zgen::Core::Encoding, N>;
 
 } // namespace Sdk::Text

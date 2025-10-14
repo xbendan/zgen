@@ -48,7 +48,7 @@ struct _Str : Slice<U> {
         Cursor<U> cursor(*this);
         return Iter([cursor] mutable -> Opt<Rune> {
             if (cursor.ended()) {
-                return Empty {};
+                return None {};
             }
 
             Rune r;
@@ -57,7 +57,7 @@ struct _Str : Slice<U> {
     }
 };
 
-using Str = _Str<Sys::Encoding>;
+using Str = _Str<Zgen::Core::Encoding>;
 
 template <StaticEncoding E>
 struct _String {
@@ -80,7 +80,9 @@ struct _String {
         }
 
         auto temp = new Unit[len + 1]; // +1 for null-termination
-        std::memcpy(temp, buf, len * sizeof(Unit));
+        for (usize i = 0; i < len; i++) {
+            temp[i] = buf[i];
+        }
         temp[len] = '\0'; // Null-terminate the string
         _buf      = temp;
     }
@@ -151,7 +153,7 @@ struct _String {
     }
 };
 
-using String = _String<Sys::Encoding>;
+using String = _String<Zgen::Core::Encoding>;
 
 } // namespace Sdk::Text
 
