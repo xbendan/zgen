@@ -12,11 +12,13 @@ Hal::Pmm& pmm();
 
 Hal::Kmm& kmm();
 
-Res<uflat> mmapIo(uflat phys);
+Opt<uflat> mmapVirtIo(uflat phys);
+
+Opt<uflat> mmapPhys(uflat virt);
 
 Hal::Vmm& globalVmm();
 
-Res<Hal::Vmm&> createKernelVmm();
+Res<Hal::Vmm&> createKernelVmm(Hal::PmmRange kernRange);
 
 Res<Rc<Hal::Vmm>> createUserVmm();
 

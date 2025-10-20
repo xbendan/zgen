@@ -1,3 +1,4 @@
+#include <sdk-logs/logger.h>
 #include <zgen/hal/vmm.h>
 #include <zgen/mm/pmm.bits.h>
 
@@ -8,7 +9,13 @@ Res<Hal::PmmRange> PmmBits::alloc(u64 size, Flags<Hal::PmmFlags> flags) {
 
     size = Hal::pageAlignUp(size);
     size /= Hal::PAGE_SIZE;
-    auto range = try$(_bits.alloc(size, flags[Hal::PmmFlags::Kernel] ? -1 : 0));
+
+    auto range = try$(_bits.alloc(size, 0));
+    logInfo("PmmBits::alloc: allocated bits range {} - {} ({} pages)\n",
+            range.start(),
+            range.end(),
+            range.size());
+
     return Ok(asPmmRange(range));
 }
 
