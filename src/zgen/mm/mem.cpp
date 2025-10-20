@@ -2,7 +2,6 @@
 #include <sdk-math/funcs.h>
 #include <sdk-meta/iter.h>
 #include <sdk-meta/literals.h>
-#include <zgen/hal/vma.h>
 #include <zgen/hal/vmm.h>
 #include <zgen/init/boot.h>
 #include <zgen/mm/kmm.inc.h>

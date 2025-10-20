@@ -1,24 +1,22 @@
+#include <arch/x86_64/cpu.h>
 #include <arch/x86_64/vmm.h>
 #include <sdk-meta/literals.h>
 #include <sdk-meta/opt.h>
-#include <zgen/hal/vma.h>
 #include <zgen/mm/mem.h>
 
 namespace Zgen::Hal::x86_64 {
 
 Opt<x86_64::Vmm> _vmm = NONE;
-Pml<4>           _kpml4;
-Pml<3>           _kDirectRegion;
-Pml<3>           _kCoreRegionL3;
-Pml<2>           _kCoreRegionL2; // 512 * 2MiB pages, lower half maps to kernel
-                                 // higher half can be used for modules etc.
+
+Pml<4>  _kpml4;
+Pml<3>  _kPhysPdpt;
+Pml<2>  _kImagePde;
+Pml<3>  _kpdpt, _kpdptLo;
+Pml<2>* _kHeapDir;
 
 template <usize L>
 Res<> Pml<L>::map(Index index, uflat addr, Flags<Hal::VmmFlags> flags) {
-    prerequisite$(index.val < Len,
-                  "Pml::map: index {} out of range [0, {})",
-                  index.val,
-                  Len);
+    pre$(index.val < Len);
     auto& e = entries[index.val];
 
     if (not e.present()) {
@@ -32,28 +30,19 @@ Res<> Pml<L>::map(Index index, uflat addr, Flags<Hal::VmmFlags> flags) {
 }
 
 template <usize L>
-Res<> Pml<L>::map(VmmRange virt, PmmRange phys, Flags<Hal::VmmFlags> flags) {
-    prerequisite$(virt.aligned(granularity()),
-                  "Pml::map: virt {:#x} is not aligned to granularity.\n",
-                  virt.start());
-    prerequisite$(phys.aligned(granularity()),
-                  "Pml::map: phys {:#x} is not aligned to granularity.\n",
-                  phys.start());
-    prerequisite$(virt.size() == phys.size(),
-                  "Pml::map: size of virt ({}) and phys ({}) do not "
-                  "match",
-                  virt.size(),
-                  phys.size());
+Res<> Pml<L>::mapRange(VmmRange             virt,
+                       PmmRange             phys,
+                       Flags<Hal::VmmFlags> flags) {
+    pre$(virt.aligned(granularity()) and phys.aligned(granularity()));
+    pre$(virt.size() == phys.size());
 
-    IndexRange range = indexRange(indexOf(virt.start()),
-                                  min((virt.size() / granularity()), 0x200));
+    IndexRange range
+        = indexRange(indexOf(virt.start()), (virt.size() / granularity()));
+    range.end(0x200);
 
-    iter(*this)
-        .skip(range.start())
-        .limit(range.size())
-        .filter$(not it.present())
-        .index()
-        .forEach$(it.v1.with(flags).with(phys.start() + it.v0 * granularity()));
+    for (usize i = range.start(); i < range.end(); i++) {
+        entries[i].with(flags).with(phys.start() + i * granularity());
+    }
     logInfo("Pml<{}>::map: mapped index {}-{} ({:#d}) -> {:#x}\n",
             Level,
             range.start(),
@@ -67,21 +56,15 @@ Res<> Pml<L>::map(VmmRange virt, PmmRange phys, Flags<Hal::VmmFlags> flags) {
 Res<VmmRange> Vmm::alloc(Opt<VmmRange>   vrange,
                          usize           amount,
                          Flags<VmmFlags> flags) {
-    if (vrange and not vrange->aligned(Hal::PAGE_SIZE)) {
-        logError("Vmm::alloc: given range {:#x} is not aligned to {:#x}",
-                 vrange->_start,
-                 Hal::PAGE_SIZE);
-        return Error::invalidArgument("Vmm::alloc: range is not page aligned");
-    }
-
-    if (amount == 0) {
-        return Error::invalidArgument("Vmm::alloc: amount is zero");
-    }
+    pre$(not vrange or vrange->aligned(Hal::PAGE_SIZE));
+    pre$(amount > 0);
 
     if (auto bitsRange = _bits.alloc(
             amount,
             vrange.unwrapOrElse({ 0, 0 }).downscale(Hal::PAGE_SIZE).start())) {
-        return Ok(bitsRange->into<VmmRange>().downscale(Hal::PAGE_SIZE));
+        return Ok(bitsRange->into<VmmRange>()
+                      .upscale(Hal::PAGE_SIZE)
+                      .offset(Hal::HEAP_REGION.start()));
     }
 
     return Error::outOfMemory("Vmm::alloc: failed to allocate bits");
@@ -108,6 +91,10 @@ Res<> Vmm::free(VmmRange range) {
 }
 
 Res<> Vmm::map(VmmRange virt, PmmRange phys, Flags<VmmFlags> flags) {
+    pre$(virt.aligned(Hal::PAGE_SIZE) and phys.aligned(Hal::PAGE_SIZE));
+    pre$((virt.size() == phys.size()) and (phys.size() % Hal::PAGE_SIZE == 0));
+    pre$(Hal::HEAP_REGION.contains(virt));
+
     return Error::notImplemented("Vmm::map: not implemented");
 }
 
@@ -120,8 +107,9 @@ Res<VmmPage> Vmm::at(usize address) {
 }
 
 Res<> Vmm::load() {
-    asm volatile("mov %0, %%cr3" ::"r"((u64) &_pml4 - KernelCoreRegion.start())
+    asm volatile("mov %0, %%cr3" ::"r"((u64) _pml4 - (u64) CORE_REGION.start())
                  : "memory");
+
     return Ok();
 }
 
@@ -131,18 +119,19 @@ Res<> createKernelVmm() {
             "x86_64::createKernelVmm: kernel vmm already exists");
     }
 
-    try$(_kpml4.map(Hal::KernelDirectRegion.start(),
-                    (uflat) &_kDirectRegion - Hal::KernelCoreRegion.start()));
-    try$(_kDirectRegion.map({ Hal::KernelDirectRegion.start(), 512_GiB },
-                            { 0x0, 512_GiB }));
+    // map kernel physical memory region
+    try$(_kpml4.map(DIRECT_IO_REGION.start(),
+                    &_kPhysPdpt - CORE_REGION.start()));
+    try$(_kPhysPdpt.mapRange({ KERNEL_REGION.start(), 512_GiB },
+                             { 0x0, 512_GiB }));
 
-    try$(_kpml4.map(Hal::KernelCoreRegion.start(),
-                    (uflat) &_kCoreRegionL3 - Hal::KernelCoreRegion.start()));
-    try$(_kCoreRegionL3.map(Hal::KernelCoreRegion.start(),
-                            (uflat) &_kCoreRegionL2
-                                - Hal::KernelCoreRegion.start()));
-    try$(_kCoreRegionL2.map({ Hal::KernelCoreRegion.start(), 512_MiB },
-                            { 0x0, 512_MiB }));
+    // map kernel image region
+    try$(_kpml4.map(CORE_REGION.start(), &_kpdpt - CORE_REGION.start()));
+    try$(_kpml4.map(USER_REGION.start(), &_kpdptLo - CORE_REGION.start()));
+    try$(_kpdpt.map(CORE_REGION.start(), &_kImagePde - CORE_REGION.start()));
+    try$(_kpdptLo.map(USER_REGION.start(), &_kImagePde - CORE_REGION.start()));
+    try$(_kImagePde.mapRange({ 0xffff'ffff'8000'0000, 512_MiB },
+                             { 0x0, 512_MiB }));
 
     _vmm.emplace(Core::pmm(), &_kpml4);
 
@@ -155,16 +144,39 @@ namespace Zgen::Core {
 
 using Hal::x86_64::_vmm;
 
+Res<Hal::Vmm&> createKernelVmm(Hal::PmmRange kernRange) {
+    try$(Hal::x86_64::createKernelVmm());
+    try$(_vmm->load());
+    try$(Core::pmm().take({ 0x0, 0x10'0000 }));
+    try$(Core::pmm().take(kernRange));
+
+    auto heapBits = Core::pmm()
+                        .alloc(0x2'0000)
+                        .unwrap(
+                            "Core::createKernelVmm: failed to allocate "
+                            "kernel heap bits")
+                        .offset(Hal::DIRECT_IO_REGION.start());
+    logInfo("Kernel heap bits initialized at {:#x} - {:#x}\n",
+            heapBits.start(),
+            heapBits.end());
+    _vmm.emplace(Core::pmm(), &Hal::x86_64::_kpml4, heapBits.bytes());
+
+    auto heapRange = Core::pmm()
+                         .alloc(16_KiB)
+                         .unwrap(
+                             "Core::createKernelVmm: failed to allocate kernel "
+                             "heap memory")
+                         .offset(Hal::DIRECT_IO_REGION.start());
+
+    Hal::x86_64::_kHeapDir = heapRange.start().as<Hal::x86_64::Pml<2>>();
+    logInfo("Kernel heap initialized at {:#x} - {:#x}\n",
+            heapRange.start(),
+            heapRange.end());
+
+    return Ok(*_vmm);
+}
+
 Hal::Vmm& globalVmm() {
-    if (not _vmm) {
-        logWarn("Core::globalVmm: no global vmm exists, creating one...\n");
-
-        Hal::x86_64::createKernelVmm().unwrap(
-            "Core::globalVmm: failed to create kernel vmm");
-        logInfo("Core::globalVmm: created global vmm\n");
-
-        __asm__ __volatile__("cli; hlt;");
-    }
     return *_vmm;
 }
 

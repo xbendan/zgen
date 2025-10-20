@@ -37,7 +37,7 @@ Res<> ControlDevice::onInit() {
                 "   - Oem ID: {}",
                 addr,
                 Str(p->oemId.buf(), 6));
-            rsdt = Zgen::Core::mmapIo(p->rsdt).take();
+            rsdt = Zgen::Core::mmapVirtIo(p->rsdt).take();
             break;
         }
         case 2: {
@@ -50,9 +50,9 @@ Res<> ControlDevice::onInit() {
                 addr,
                 (u64) x->xsdt,
                 Str(x->oemId.buf(), 6));
-            Xsdp* xsdp = Zgen::Core::mmapIo(uflat(p)).take();
-            rsdt       = Zgen::Core::mmapIo(xsdp->rsdt).take();
-            xsdt       = Zgen::Core::mmapIo(xsdp->xsdt).take();
+            Xsdp* xsdp = Zgen::Core::mmapVirtIo(uflat(p)).take();
+            rsdt       = Zgen::Core::mmapVirtIo(xsdp->rsdt).take();
+            xsdt       = Zgen::Core::mmapVirtIo(xsdp->xsdt).take();
             break;
         }
         default: {
@@ -83,7 +83,7 @@ Res<_Desc*> ControlDevice::lookupTable(Str name) {
 
     if (name == "DSDT") {
         auto* fadt = try$(lookupTable("FACP"));
-        uflat dsdt = try$(Zgen::Core::mmapIo(((Acpi::Fadt*) fadt)->dsdt));
+        uflat dsdt = try$(Zgen::Core::mmapVirtIo(((Acpi::Fadt*) fadt)->dsdt));
         return Ok(dsdt);
     }
 
@@ -93,7 +93,7 @@ Res<_Desc*> ControlDevice::lookupTable(Str name) {
     for (int i = 0; i < entries; i++) {
         u64 ent = revision ? xsdt->tables[i] : rsdt->tables[i];
 
-        auto desc = (Acpi::_Desc*) try$(Zgen::Core::mmapIo(ent));
+        auto desc = (Acpi::_Desc*) try$(Zgen::Core::mmapVirtIo(ent));
         if (cstrEq(desc->sign.buf(), name.buf())) {
             logInfo("acpi::lookupTable: found table {} at {:#x}", name, ent);
             tables[name] = desc;

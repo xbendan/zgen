@@ -4,6 +4,7 @@
 #include <sdk-meta/bits.h>
 #include <sdk-meta/index.h>
 #include <sdk-meta/iter.h>
+#include <sdk-meta/ptr.h>
 #include <sdk-meta/ref.h>
 #include <sdk-meta/slice.h>
 #include <sdk-meta/str.h>
@@ -113,11 +114,11 @@ struct [[gnu::packed]] alignat(Hal::PAGE_SIZE) Pml {
               Flags<Hal::VmmFlags> flags
               = { Hal::VmmFlags::PRESENT | Hal::VmmFlags::WRITE });
 
-    Res<> map(VmmRange             virt,
-              PmmRange             phys,
-              Flags<Hal::VmmFlags> flags = { Hal::VmmFlags::PRESENT
-                                             | Hal::VmmFlags::WRITE
-                                             | Hal::VmmFlags::PAGE_SIZE });
+    Res<> mapRange(VmmRange             virt,
+                   PmmRange             phys,
+                   Flags<Hal::VmmFlags> flags = { Hal::VmmFlags::PRESENT
+                                                  | Hal::VmmFlags::WRITE
+                                                  | Hal::VmmFlags::PAGE_SIZE });
 
     bool none() const {
         for (auto e : entries) {
@@ -173,57 +174,6 @@ struct Vmm : Hal::Vmm {
                         Flags<VmmFlags> flags) override;
 
     Res<> free(VmmRange range) override;
-
-    template <usize L>
-    Res<> map(Pml<L>*              pml,
-              VmmRange             virt,
-              PmmRange             phys,
-              Flags<Hal::VmmFlags> flags
-              = { Hal::VmmFlags::PRESENT | Hal::VmmFlags::WRITE },
-              Hal::Granularity granularity = Hal::Granularity::PAGE_4K) {
-        if (virt.size() != phys.size()) {
-            logError(
-                "Vmm::map: size of virt ({:#x}) and phys ({:#x}) do not "
-                "match",
-                virt.size(),
-                phys.size());
-            return Error::invalidArgument(
-                "Vmm::map: size of virt and phys do not match");
-        }
-
-        if (not virt.aligned(granularity) or not phys.aligned(granularity)) {
-            logError(
-                "Vmm::map: virt {:#x} or phys {:#x} is not aligned to {:#x}",
-                virt._start,
-                phys._start,
-                granularity);
-            return Error::invalidArgument(
-                "Vmm::map: virt or phys is not page aligned");
-        }
-
-        iter(*pml)
-            .filter$(not it.present())
-            .index()
-            .forEach$(
-                it.v1.with(flags).with(phys.start() + it.v0 * granularity));
-
-        usize pageCount = virt.size() / granularity;
-
-        for (usize i = 0; i < pageCount; i++) {
-            auto e = pml->at(virt.start() + i * granularity);
-
-            if (e.present()) {
-                return Error::alreadyExists("Vmm::map: entry already exists");
-            }
-
-            e.with(flags).with(phys.start() + i * granularity);
-        }
-
-        logInfo("Vmm::map: mapped {:#d} {}-level entries -> {:#x}",
-                virt.size() / granularity);
-
-        return Ok();
-    }
 
     Res<> map(VmmRange virt, PmmRange phys, Flags<VmmFlags> flags) override;
 

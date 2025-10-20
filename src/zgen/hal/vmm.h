@@ -7,6 +7,25 @@
 
 namespace Zgen::Hal {
 
+// ========================================================================================================================
+//     Start addr         |   Offset   |     End addr          |  Size   | VM area description
+// ========================================================================================================================
+//                        |            |                       |         |
+//  0x0000'0000'0000'0000 |            | 0x0000'7fff'ffff'ffff | 128 TiB | User space
+//                        |            |                       |         |
+// -----------------------+------------+-----------------------+---------+-------------------------------------------------
+//                        |            |                       |         |
+//  0xffff'8000'0000'0000 |            | 0xffff'ffff'ffff'ffff | 128 TiB | Kernel space
+//                        |            |                       |         |
+// -----------------------+------------+-----------------------+---------+-------------------------------------------------
+//                        |            |                       |         |
+//  0xffff'8000'0000'0000 |            | 0xffff'bfff'ffff'ffff | 64 TiB  | Direct mapped region (1:1 phys to virt mapping)
+//  0xffff'ffc0'0000'0000 |            | 0xffff'ffc0'ffff'ffff | 4 GiB   | Kernel heap region (for kmalloc, vmalloc etc.)
+//  0xffff'ffff'8000'0000 |            | 0xffff'ffff'9fff'ffff | 512 MiB | Kernel core region (for kernel code, data, modules etc.)
+//  0xffff'ffff'a000'0000 |            | 0xffff'ffff'ffff'ffff | 1536 MiB| Kernel modules region (for loadable kernel modules)
+//                        |            |                       |         |
+// ========================================================================================================================
+
 static constexpr usize PAGE_SIZE  = 0x1000;
 static constexpr uflat KERNEL_VMA = 0xffff'ffff'8000'0000ull;
 
@@ -51,6 +70,16 @@ struct VmmPage {
 };
 
 using VmmRange = Range<uflat, struct _VmmRangeTag>;
+
+#define VMA_RANGE(NAME, START, SIZE)                                           \
+    static VmmRange const NAME = { START, SIZE }
+
+VMA_RANGE(USER_REGION, 0x0000'0000'0000'0000ull, 128_TiB);
+VMA_RANGE(KERNEL_REGION, 0xffff'8000'0000'0000ull, 128_TiB);
+VMA_RANGE(DIRECT_IO_REGION, 0xffff'8000'0000'0000ull, 64_TiB);
+VMA_RANGE(HEAP_REGION, 0xffff'ffc0'0000'0000ull, 4_GiB);
+VMA_RANGE(CORE_REGION, 0xffff'ffff'8000'0000ull, 512_MiB);
+VMA_RANGE(MODULES_REGION, 0xffff'ffff'a000'0000ull, 1536_MiB);
 
 struct Vmm {
     virtual ~Vmm() = default;

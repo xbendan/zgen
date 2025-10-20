@@ -1,6 +1,7 @@
 #pragma GCC diagnostic ignored "-Wcomment"
 
 #include <sdk-logs/logger.h>
+#include <sdk-meta/literals.h>
 #include <sdk-meta/res.h>
 #include <sdk-meta/types.h>
 #include <sdk-text/str.h>
@@ -81,11 +82,13 @@ Res<> main(u64 magic, PrekernelInfo* info) {
         "         - Magic:          {:#x}\n"
         "         - Agent Name:     {}\n"
         "         - Agent Version:  {}\n"
-        "         - Stack Pointer:  {:#x}\n",
-        info->magic,
+        "         - Offset Phys:    {:#x}\n"
+        "         - Offset Virt:    {:#x}\n",
+        magic,
         Str { info->agentName },
         Str { info->agentVersion },
-        info->stack);
+        info->offsetPhys,
+        info->offsetVirt);
 
     try$(setupMemory(info));
 
