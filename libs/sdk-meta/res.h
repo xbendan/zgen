@@ -174,11 +174,11 @@ extern "C" void __try_failed();
         __expr.take();                                                         \
     })
 
-#define prerequisite$(EXPR, ERRMSG, ...)                                       \
+#define pre$(EXPR)                                                             \
     ({                                                                         \
         if (not(EXPR)) [[unlikely]] {                                          \
-            logError(ERRMSG, __VA_ARGS__);                                     \
-            return Error::invalidArgument(ERRMSG);                             \
+            logError("Precondition failed: " #EXPR);                           \
+            return Error::invalidArgument("precondition failed: " #EXPR);      \
         }                                                                      \
     })
 

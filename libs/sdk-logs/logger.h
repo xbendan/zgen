@@ -66,9 +66,8 @@ inline void _log(Level level, Str fmt, Text::_Args& va) {
     // catch$(Text::format(dest, "{}", Cli::Style::Default));
     catch$(Text::format(
         dest, "[{}", Text::aligned(level.name, Text::Align::LEFT, 5)));
-    // catch$(Text::format(dest, "[{}", level.name));
     // if (_useTime) {
-    //     // catch$(Text::format(dest, ", {}", Text::aligned(level.name, Text::Align::LEFT, 12)));
+    //     catch$(Text::format(dest, ", {}", Text::aligned(level.name, Text::Align::LEFT, 12)));
     // }
     catch$(Text::format(dest, "] "));
     catch$(Text::_format(dest, fmt, va));

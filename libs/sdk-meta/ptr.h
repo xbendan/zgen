@@ -78,6 +78,11 @@ struct [[gnu::packed]] uflat {
         return m_ptr <=> u64(other);
     }
 
+    [[gnu::always_inline]] constexpr bool operator==(
+        Meta::Convertible<u64> auto other) const {
+        return m_ptr == u64(other);
+    }
+
     // [[gnu::always_inline]] constexpr auto operator<=>(u64 other) const {
     //     return m_ptr <=> other;
     // }
@@ -91,9 +96,24 @@ struct [[gnu::packed]] uflat {
         return reinterpret_cast<T*>(m_ptr);
     }
 
+    template <typename T>
+    [[gnu::always_inline]] constexpr T* as() const {
+        return reinterpret_cast<T*>(m_ptr);
+    }
+
     u64 m_ptr;
 };
 static_assert(sizeof(uflat) == sizeof(void*), "uflat size mismatch");
+
+constexpr uflat operator+(Meta::Convertible<uflat> auto lhs,
+                          Meta::Convertible<uflat> auto rhs) {
+    return (u64) lhs + (u64) rhs;
+}
+
+constexpr uflat operator-(Meta::Convertible<uflat> auto lhs,
+                          Meta::Convertible<uflat> auto rhs) {
+    return (u64) lhs - (u64) rhs;
+}
 
 } // namespace Meta
 

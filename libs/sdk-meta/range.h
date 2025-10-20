@@ -29,6 +29,11 @@ struct Range {
 
     [[gnu::always_inline]] constexpr T start() const { return _start; }
 
+    [[gnu::always_inline]] constexpr T start(T val) {
+        _start = val;
+        return _start;
+    }
+
     [[gnu::always_inline]] constexpr Size size() const { return _size; }
 
     [[gnu::always_inline]] constexpr T end() const { return _start + _size; }
@@ -112,6 +117,10 @@ struct Range {
         return { _start * factor, _size * factor };
     }
 
+    [[gnu::always_inline]] constexpr Range offset(T offset) const {
+        return { _start + offset, _size };
+    }
+
     [[gnu::always_inline]] constexpr Vec<T> toVec() const {
         Vec<T> vec;
         for (T i = 0; i < _size; i++) {
@@ -127,5 +136,7 @@ struct Range {
     constexpr bool operator==(Range const&) const = default;
 
     constexpr explicit operator bool() const noexcept { return not isEmpty(); }
+
+    constexpr explicit operator T() const noexcept { return _start; }
 };
 

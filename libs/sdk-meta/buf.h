@@ -458,4 +458,8 @@ struct InlineBuf {
     usize len() const { return _len; }
 
     usize cap() const { return N; }
+
+    T* begin() { return buf(); }
+
+    T* end() { return buf() + _len; }
 };

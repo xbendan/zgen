@@ -5,6 +5,7 @@
 #include <initializer_list>
 
 #define alignat(x) __attribute__((aligned(x)))
+#define section(x) __attribute__((section(x)))
 
 using u8   = unsigned char;
 using u16  = unsigned short;

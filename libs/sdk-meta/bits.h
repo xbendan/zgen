@@ -55,29 +55,29 @@ struct Bits {
 
     usize len() const { return _len * 8; }
 
-    Opt<BitsRange> alloc(usize count, usize start, bool upper = true) {
+    Opt<BitsRange> alloc(usize count, usize start) {
         start = min(start, len());
 
         if (not len() or not count) {
-            return None {};
+            return NONE;
         }
 
         BitsRange range = {};
         for (usize i = start; //
-             (upper ? i > 0 : i < len());
-             (i += upper ? -1 : 1)) {
+             i < len();
+             i += 1) {
 
             if (get(i)) {
                 range = {};
             } else {
-                if (not range._size or upper) {
-                    range._start = i;
+                if (not range.size()) {
+                    range.start(i);
                 }
 
                 range._size++;
             }
 
-            if (range._size == count) {
+            if (range.size() == count) {
                 setRange<true>(range);
                 return range;
             }

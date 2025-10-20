@@ -125,6 +125,10 @@ struct _Vec {
 
     constexpr T const* buf() const { return _buf.buf(); }
 
+    constexpr T* begin() { return _buf.begin(); }
+
+    constexpr T* end() { return _buf.end(); }
+
     constexpr T& operator[](usize i) {
         if (i >= len()) [[unlikely]]
             panic("index out of bounds");

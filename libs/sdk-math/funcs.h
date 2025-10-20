@@ -129,6 +129,23 @@ static constexpr auto fcos(Meta::Float auto x) -> decltype(x) {
     return x;
 }
 
+enum DivisionPolicy {
+    ROUND_UP,
+    ROUND_DOWN,
+    ROUND_NEAREST
+};
+
+[[gnu::always_inline]] constexpr auto div(auto           n,
+                                          auto           d,
+                                          DivisionPolicy policy = ROUND_DOWN) {
+    switch (policy) {
+        case ROUND_UP:      return (n + d - 1) / d;
+        case ROUND_DOWN:    return n / d;
+        case ROUND_NEAREST: return (n + d / 2) / d;
+        default:            panic("div: unknown division policy");
+    }
+}
+
 namespace _ {
 static usize const primes[] = {
     3,       7,       17,      37,       89,       197,      431,

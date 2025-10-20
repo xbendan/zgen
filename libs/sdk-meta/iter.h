@@ -480,6 +480,16 @@ struct Iter {
 
 #define forEach$(expr) forEach([&](auto it) { expr; })
 
+    constexpr auto forEachIndexed(auto f) -> void {
+        usize index = 0;
+        for (auto item = next(); item; item = next()) {
+            f(index++, *item);
+        }
+    }
+
+#define forEachIndexed$(expr)                                                  \
+    forEachIndexed([&](usize index, auto it) { expr; })
+
     // MARK: - [Index Access]
 
     constexpr auto elementAt(usize index) const -> Item {
