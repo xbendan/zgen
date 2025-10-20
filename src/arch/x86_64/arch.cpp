@@ -13,7 +13,9 @@
 namespace Zgen::Hal {
 
 extern "C" void _intDispatch(int num, x86_64::Regs* regs) {
-    return;
+    logInfo("Interrupt: {}, regs: {:#x}\n", num, (uflat) regs);
+    __asm__ __volatile__("cli; hlt");
+    __builtin_unreachable();
 }
 
 x86_64::Idt              _idt;

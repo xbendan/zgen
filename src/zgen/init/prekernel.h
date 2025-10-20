@@ -4,6 +4,7 @@
 #include <sdk-meta/iter.h>
 #include <sdk-meta/ptr.h>
 #include <sdk-meta/range.h>
+#include <sdk-meta/tuple.h>
 #include <sdk-meta/types.h>
 #include <sdk-meta/vec.h>
 
@@ -14,7 +15,9 @@ struct PrekernelInfo {
     char* agentName;
     char* agentVersion;
     i64   timestamp;
-    uflat stack;
+
+    uflat offsetPhys;
+    uflat offsetVirt;
 
     struct _MemmapEntry {
         Range<u64> range;
@@ -22,13 +25,14 @@ struct PrekernelInfo {
             Usable      = 0,
             Reserved    = 1,
             Reclaimable = 2,
-            AcpiNvs     = 3,
-            BadMemory   = 4,
-            Framebuffer = 5,
+            TextOrData  = 3,
+            AcpiNvs     = 4,
+            BadMemory   = 5,
+            Framebuffer = 6,
         } type;
     };
 
-    InlineVec<struct _MemmapEntry, 64> memmap;
+    InlineVec<_MemmapEntry, 64> memmap;
 };
 
 inline PrekernelInfo prekernel;
