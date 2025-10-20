@@ -1,0 +1,26 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "x86_64-elf debug",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "qemu-system-x86_64.exe",
+            "args": [
+                "-serial stdio -cdrom \\\\wsl$\\home\\nemesis4th\\code\\zgen\\build\\bin\\zgen-x86_64-v1.0-release.iso",
+                "-cpu qemu64,+ssse3,+sse4.1,+sse4.2",
+                "-smp 4 -m 128m",
+                "-s -S"
+            ],
+            "externalConsole": true,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "pretty printing",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        }
+    ]
+}
