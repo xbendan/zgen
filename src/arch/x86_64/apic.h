@@ -4,10 +4,10 @@
 #include <arch/x86_64/regs.h>
 #include <sdk-meta/ptr.h>
 #include <sdk-meta/vec.h>
-#include <zgen/hal/intr.h>
+#include <zgen/hal/event.h>
 #include <zgen/hal/io.h>
 #include <zgen/hal/smp.h>
-#include <zgen/io/device.h>
+#include <zgen/io/dev.h>
 
 namespace Zgen::Hal::x86_64::Apic {
 
@@ -60,11 +60,11 @@ enum struct Dest {
     Others = (3 << 18)
 };
 
-using Zgen::Core::Io::Device;
+using Zgen::Core::Io::Dev;
 
 struct Local;
 
-struct GenericDevice : public Device, public Hal::Intr, public Hal::Io {
+struct GenericDevice : public Dev, public Hal::Events, public Hal::Io {
     Vec<Nonnull<Local>>   _devices;
     Vec<Acpi::Madt::Iso*> _isos;
 
@@ -93,7 +93,7 @@ struct GenericDevice : public Device, public Hal::Intr, public Hal::Io {
     void base(uflat addr);
 };
 
-struct Local : public Device, public Hal::Io {
+struct Local : public Dev, public Hal::Io {
     u8    _processorId;
     u8    _apicId;
     uflat _base, _vbase;
@@ -111,14 +111,14 @@ struct Local : public Device, public Hal::Io {
     Res<> send(Dest dest, Message message, u8 vec);
 };
 
-struct TimerDevice : public Device {
+struct TimerDevice : public Dev {
     Local& _local;
     u32    _busSpeed, _irqSrc;
 
     TimerDevice(Local& local) : _local(local), _busSpeed(0), _irqSrc(0) { }
 };
 
-struct Intr : public Hal::Intr {
+struct Intr : public Hal::Events {
     Local& _cpuLocal;
 
     Intr(Local& cpuLocal) : _cpuLocal(cpuLocal) { }

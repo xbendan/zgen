@@ -6,7 +6,8 @@
 
 namespace Zgen::Hal {
 
-struct Intr {
+struct Events {
+
     virtual Res<> fin() = 0;
 
     virtual Res<> pause() = 0;

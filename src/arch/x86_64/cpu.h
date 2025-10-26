@@ -20,13 +20,13 @@ struct [[gnu::aligned(0x10)]] CpuLocal : Meta::Pinned {
 
     CpuLocal() = delete;
 
-        CpuLocal(u32 id, Idt const& idt)
-                : self(this),
-                    id(id),
-                    tss(),
-                    gdt(tss),
-                    gdtPtr(gdt),
-                    idtPtr(idt) { }
+    CpuLocal(u32 id, Idt const& idt)
+        : self(this),
+          id(id),
+          tss(),
+          gdt(tss),
+          gdtPtr(gdt),
+          idtPtr(idt) { }
 };
 
 [[noreturn, maybe_unused]] static inline void halt() {

@@ -1,11 +1,11 @@
 #pragma once
 
-#include <zgen/hal/intr.h>
+#include <zgen/hal/event.h>
 #include <zgen/hal/io.h>
 
 namespace Zgen::Hal::x86_64 {
 
-struct Pic : public Hal::Intr {
+struct Pic : public Hal::Events {
     Hal::PortIo _io;
 
     static constexpr inline Hal::Reg<u8, 0> Command;
