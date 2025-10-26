@@ -4,7 +4,7 @@
 #include <sdk-meta/literals.h>
 #include <zgen/hal/vmm.h>
 #include <zgen/init/boot.h>
-#include <zgen/mm/kmm.inc.h>
+#include <zgen/mm/kmm.slub.h>
 #include <zgen/mm/mem.h>
 #include <zgen/mm/pmm.bits.h>
 
@@ -13,9 +13,6 @@ extern "C" u64 __kernel_end;
 extern "C" u64 __kernel_load_end;
 extern "C" u64 __bss_start;
 extern "C" u64 __bss_end;
-extern "C" u64 _stackTop;
-extern "C" u64 _stackBottom;
-extern "C" u64 _pml4;
 
 namespace Zgen::Core {
 
@@ -23,18 +20,23 @@ using Sdk::Text::Align;
 using Sdk::Text::aligned;
 
 Opt<PmmBits> _pmm;
-Opt<KmmInc>  _kmm;
+Opt<KmmSlub> _kmm;
 
 Res<> setupMemory(PrekernelInfo* info) {
+    // MARK: - vmm
+    Core::createKernelVmm().unwrap("Failed to create global vmm");
+    logInfo("Created and loaded global vmm.\n");
+
     usize kImageSize
         = Hal::pageAlignUp((uflat) &__kernel_end - 0xffff'ffff'8010'0000);
 
+    // MARK: - scan memory layout
     logInfo("Scanning usable memory regions...\n");
-    for (int i = 0; i < info->memmap.len(); i++) {
+    for (int i = 0; i < info->memmap.len(); i++)
         if (info->memmap[i].range.start() == 0x10'0000) {
             info->memmap[i].range.take(kImageSize);
         }
-    }
+
     iter(info->memmap)
         .forEach$(logInfo(" > {:#x} - {:#x} ({} MiB) {}\n",
                           aligned(it.range.start(), Align::RIGHT, 16),
@@ -47,14 +49,15 @@ Res<> setupMemory(PrekernelInfo* info) {
                       .select$(it.range)
                       .reduce$(x.merge(y))
                       .mapTo$(it.template into<Hal::PmmRange>());
+    auto usablePages = usable->size() / Hal::PAGE_SIZE;
 
-    if (usable->_size < 16_MiB) {
+    if (usable->size() < 16_MiB) {
         logError("Not enough usable memory found\n");
         return Error::outOfMemory("not enough memory");
     }
     logInfo("Done! Usable memory: {} KiB\n", usable->size() / 1_KiB);
 
-    // Reserve memory for pmm bits
+    // MARK: - pmm
     usize bitsSize = Hal::pageAlignUp(
         Math::div(usable->end(), Hal::PAGE_SIZE * 8, Math::ROUND_UP));
     Opt<Hal::PmmRange> bitsRange = NONE;
@@ -66,17 +69,13 @@ Res<> setupMemory(PrekernelInfo* info) {
             continue;
         }
 
+        auto range = entry.range.take(bitsSize);
         logInfo("Reserving {:#x} - {:#x} for pmm bits\n",
-                entry.range.start(),
-                entry.range.start() + bitsSize);
-        bitsRange.emplace(entry.range.start(), bitsSize);
+                range.start(),
+                range.start() + bitsSize);
+        bitsRange.emplace(range.start(), bitsSize);
         break;
     }
-    // auto bitsRange = iter(info->memmap)
-    //                      .first$((it.type == 0)
-    //                              and (it.range.start() != 0)
-    //                              and (it.range.size() >= bitsSize))
-    //                      .mapTo$(it.range.take(bitsSize));
     if (not bitsRange) {
         return Error::outOfMemory("no suitable range for pmm bits");
     }
@@ -84,40 +83,58 @@ Res<> setupMemory(PrekernelInfo* info) {
         *usable,
         Bits((u8*) mmapVirtIo(bitsRange->start()).take(), bitsRange->size()));
 
-    auto& vmm = Core::createKernelVmm(
-                    { 0x0, (uflat) &__kernel_end - 0xffff'ffff'8000'0000 })
-                    .unwrap();
-    logInfo("Created and loaded global vmm.\n");
+    iter(info->memmap)
+        .filter$((it.type == 0) and (it.range.start() != 0))
+        .forEach$(_pmm->mark(it.range.template into<Hal::PmmRange>().inner(
+                                 Hal::PAGE_SIZE),
+                             false)
+                      .unwrap());
 
-    auto kmmRange = Hal::KmmRange {
-        Hal::KERNEL_VMA + 1_GiB,
-        16_MiB,
-    };
+    struct _Kmm : Hal::Kmm {
+        Res<Hal::KmmRange> alloc(usize                     size,
+                                 Flags<Hal::KmmAllocFlags> flags
+                                 = {}) override {
+            auto pmm = Core::pmm()
+                           .alloc(Hal::pageAlignUp(size))
+                           .unwrap("Kmm::alloc: pmm alloc failed")
+                           .into<Hal::KmmRange>();
+            return Ok(Core::mmapVirtIoRange(pmm).take());
+        }
+
+        Res<> free(uflat addr) override { return Error::notImplemented(); }
+
+        Res<> free(Hal::KmmRange range) override {
+            return Error::notImplemented();
+        }
+    } kmm;
+
+    // MARK: - kmm
+
+    // Slice<KmmSlub::Block> blocks {
+    //     try$(kmm.alloc((usablePages * sizeof(KmmSlub::Block))))
+    //         .start()
+    //         .as<KmmSlub::Block>(),
+    //     usablePages
+    // };
+
+    _kmm.emplace(try$(kmm.alloc(Hal::PAGE_SIZE)),
+                 try$(kmm.alloc(usablePages * sizeof(KmmSlub::Block))));
 
     __asm__ __volatile__("cli; hlt");
-
-    try$(vmm.map(kmmRange.into<Hal::VmmRange>(),
-                 try$(_pmm->alloc(kmmRange._size, Hal::PmmFlags::Kernel)),
-                 Hal::VmmFlags::WRITE));
-    logInfo("Kmm: initialized at {:#x} - {:#x} ({} MiB)\n",
-            kmmRange._start,
-            kmmRange.end(),
-            kmmRange._size / 1_MiB);
-    _kmm.emplace(Zgen::Core::pmm(), kmmRange);
 
     return Ok();
 }
 
 Hal::Pmm& pmm() {
     if (not _pmm) {
-        panic("pmm: not initialized");
+        panic("Core::pmm: not initialized");
     }
     return *_pmm;
 }
 
 Hal::Kmm& kmm() {
     if (not _kmm) {
-        panic("kmm: not initialized");
+        panic("Core::kmm: not initialized");
     }
     return *_kmm;
 }

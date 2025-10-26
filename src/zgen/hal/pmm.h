@@ -28,6 +28,8 @@ struct Pmm {
     virtual Res<> free(PmmRange range) = 0;
 
     virtual Res<> take(PmmRange range) = 0;
+
+    virtual Res<> mark(PmmRange range, bool used) = 0;
 };
 
 } // namespace Zgen::Hal

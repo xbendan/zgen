@@ -1,6 +1,8 @@
 #pragma once
 
+#include <sdk-meta/list.h>
 #include <sdk-meta/lock.h>
+#include <sdk-meta/pc.h>
 #include <sdk-meta/ref.h>
 #include <sdk-text/str.h>
 #include <zgen/hal/kmm.h>
@@ -8,32 +10,56 @@
 
 namespace Zgen::Core {
 
+using Meta::Lnode;
+
 struct KmmSlub final : public Hal::Kmm {
-    struct Cache {
-        Str  name;
-        Lock lock;
-        u32  size;
-        u32  align;
+    struct Block {
+        Lnode<Block> lnode;
+        u32          inuse: 16;
+        u32          objects: 15;
+        u32          frozen: 1;
+        void**       ptr;
+    };
+    static_assert(sizeof(Block) == 32);
+
+    struct Node {
+        Block*      curr;
+        List<Block> partial;
     };
 
-    struct [[gnu::packed]] Data {
-        struct [[gnu::packed]] {
-            u32 inuse: 16;
-            u32 objects: 15;
-            u32 frozen: 1;
-        };
-        void** freelist;
-        Cache* cache;
+    struct Kind {
+        Str         name;
+        Lock        lock;
+        u32         size;
+        u32         align;
+        Lnode<Kind> lnode;
+        List<Block> full;
+        List<Block> partial;
+        Pc<Node>    percpu;
+        Vec<Node>   nodes;
     };
-    static_assert(sizeof(Data) == 20);
+    static_assert(sizeof(Kind) <= 192);
 
-    KmmSlub();
-    ~KmmSlub() final = default;
+    static constexpr Array<usize, 16> Sizes = {
+        (8),   (16),  (24),  (32),  (48),  (64),   (96),   (128),
+        (192), (256), (384), (512), (768), (1024), (1536), (2048),
+    };
+
+    Slice<Kind>  _kinds;
+    Slice<Block> _blocks;
+
+    KmmSlub(Hal::KmmRange kindsRange, Hal::KmmRange blocksRange);
 
     Res<Hal::KmmRange> alloc(usize                     size,
                              Flags<Hal::KmmAllocFlags> flags) override;
 
+    Opt<uflat> alloc(Kind& kind, Node& node, Flags<Hal::KmmAllocFlags> flags);
+
+    Res<> free(uflat addr) override;
+
     Res<> free(Hal::KmmRange range) override;
+
+    Res<> nonnull(Kind& kind, Node& node);
 };
 
 } // namespace Zgen::Core

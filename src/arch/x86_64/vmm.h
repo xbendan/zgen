@@ -128,6 +128,10 @@ struct [[gnu::packed]] alignat(Hal::PAGE_SIZE) Pml {
         return true;
     }
 
+    Entry* buf() {
+        return entries.buf();
+    }
+
     Entry const* buf() const {
         return entries.buf();
     }
@@ -140,14 +144,10 @@ static_assert(sizeof(Pml<1>) == 0x1000);
 static_assert(Sliceable<Pml<1>>);
 
 struct Vmm : Hal::Vmm {
-    Hal::Pmm& _pmm;
-    Pml<4>*   _pml4;
-    Bits      _bits; // Each 4KiB can be used to manage 128MiB of virtual memory
+    Pml<4>* _pml4;
+    Bits    _bits; // Each 4KiB can be used to manage 128MiB of virtual memory
 
-    Vmm(Hal::Pmm& pmm, Pml<4>* pml4, Slice<u8> bits = {})
-        : _pmm(pmm),
-          _pml4(pml4),
-          _bits(bits) { }
+    Vmm(Pml<4>* pml4, Slice<u8> bits = {}) : _pml4(pml4), _bits(bits) { }
 
     ~Vmm() override = default;
 

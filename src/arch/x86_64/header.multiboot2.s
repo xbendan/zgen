@@ -40,6 +40,16 @@ multiboot2_request_start:
         dd kinit_multiboot2_entry32
     .entry_end:
 
+    .framebuffer_start:
+        align 0x08
+        dw 5
+        dw 0
+        dd .framebuffer_end - .framebuffer_start
+        dd 1024
+        dd 768
+        dd 32
+    .framebuffer_end:
+
     .end:
         align 0x08
         dw 0

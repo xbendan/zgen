@@ -11,7 +11,9 @@ struct PmmBits : public Hal::Pmm {
     Bits          _bits;
     Lock          _lock;
 
-    PmmBits(Hal::PmmRange usable, Bits bits) : _usable(usable), _bits(bits) { }
+    PmmBits(Hal::PmmRange usable, Bits bits) : _usable(usable), _bits(bits) {
+        fill(_bits.bytes(), (u8) 0xff);
+    }
 
     ~PmmBits() override = default;
 
@@ -21,6 +23,8 @@ struct PmmBits : public Hal::Pmm {
     Res<> free(Hal::PmmRange range) override;
 
     Res<> take(Hal::PmmRange range) override;
+
+    Res<> mark(Hal::PmmRange range, bool used) override;
 
     BitsRange asBitsRange(Hal::PmmRange range) {
         range._start -= _usable._start;

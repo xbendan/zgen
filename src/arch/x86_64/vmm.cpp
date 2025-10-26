@@ -8,11 +8,11 @@ namespace Zgen::Hal::x86_64 {
 
 Opt<x86_64::Vmm> _vmm = NONE;
 
-Pml<4>  _kpml4;
-Pml<3>  _kPhysPdpt;
-Pml<2>  _kImagePde;
-Pml<3>  _kpdpt, _kpdptLo;
-Pml<2>* _kHeapDir;
+Pml<4> _kpml4;
+Pml<3> _kPhysPdpt;
+Pml<2> _kImagePde;
+Pml<3> _kpdpt, _kpdptLo;
+Pml<2> _kHeapDir[4];
 
 template <usize L>
 Res<> Pml<L>::map(Index index, uflat addr, Flags<Hal::VmmFlags> flags) {
@@ -58,6 +58,20 @@ Res<VmmRange> Vmm::alloc(Opt<VmmRange>   vrange,
                          Flags<VmmFlags> flags) {
     pre$(not vrange or vrange->aligned(Hal::PAGE_SIZE));
     pre$(amount > 0);
+
+    if (not _bits.len()) {
+        // the bits buffer is not initialized
+        logWarn("Vmm::alloc: bits buffer is not initialized\n");
+        auto heapBits
+            = Core::pmm()
+                  .alloc(0x2'0000)
+                  .unwrap("Vmm::alloc: pmm alloc for heap bits failed")
+                  .offset(Hal::DIRECT_IO_REGION.start());
+        logInfo("Vmm::alloc: allocated bits at {:#x} ({} bytes)\n",
+                heapBits.start(),
+                heapBits.size());
+        _bits = { heapBits.start(), heapBits.size() };
+    }
 
     if (auto bitsRange = _bits.alloc(
             amount,
@@ -133,7 +147,7 @@ Res<> createKernelVmm() {
     try$(_kImagePde.mapRange({ 0xffff'ffff'8000'0000, 512_MiB },
                              { 0x0, 512_MiB }));
 
-    _vmm.emplace(Core::pmm(), &_kpml4);
+    _vmm.emplace(&_kpml4);
 
     return Ok();
 }
@@ -144,34 +158,9 @@ namespace Zgen::Core {
 
 using Hal::x86_64::_vmm;
 
-Res<Hal::Vmm&> createKernelVmm(Hal::PmmRange kernRange) {
+Res<Hal::Vmm&> createKernelVmm() {
     try$(Hal::x86_64::createKernelVmm());
     try$(_vmm->load());
-    try$(Core::pmm().take({ 0x0, 0x10'0000 }));
-    try$(Core::pmm().take(kernRange));
-
-    auto heapBits = Core::pmm()
-                        .alloc(0x2'0000)
-                        .unwrap(
-                            "Core::createKernelVmm: failed to allocate "
-                            "kernel heap bits")
-                        .offset(Hal::DIRECT_IO_REGION.start());
-    logInfo("Kernel heap bits initialized at {:#x} - {:#x}\n",
-            heapBits.start(),
-            heapBits.end());
-    _vmm.emplace(Core::pmm(), &Hal::x86_64::_kpml4, heapBits.bytes());
-
-    auto heapRange = Core::pmm()
-                         .alloc(16_KiB)
-                         .unwrap(
-                             "Core::createKernelVmm: failed to allocate kernel "
-                             "heap memory")
-                         .offset(Hal::DIRECT_IO_REGION.start());
-
-    Hal::x86_64::_kHeapDir = heapRange.start().as<Hal::x86_64::Pml<2>>();
-    logInfo("Kernel heap initialized at {:#x} - {:#x}\n",
-            heapRange.start(),
-            heapRange.end());
 
     return Ok(*_vmm);
 }

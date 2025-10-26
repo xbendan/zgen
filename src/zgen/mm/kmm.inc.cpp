@@ -27,8 +27,8 @@ Res<usize> KmmInc::expand(usize size) {
 }
 
 Res<Hal::KmmRange> KmmInc::alloc(usize size, Flags<Hal::KmmAllocFlags> flags) {
-    while (uflat(size) > _range->_size) {
-        try$(expand(Hal::pageAlignUp(size - _range->_size)));
+    while (uflat(size) > _range->size()) {
+        try$(expand(Hal::pageAlignUp(size - _range->size())));
     }
 
     return Ok(_range->take(size));

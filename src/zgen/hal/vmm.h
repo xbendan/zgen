@@ -1,6 +1,7 @@
 #pragma once
 
 #include <sdk-meta/flags.h>
+#include <sdk-meta/literals.h>
 #include <sdk-meta/range.h>
 #include <sdk-meta/res.h>
 #include <zgen/hal/pmm.h>

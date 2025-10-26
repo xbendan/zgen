@@ -20,33 +20,37 @@ Res<Hal::PmmRange> PmmBits::alloc(u64 size, Flags<Hal::PmmFlags> flags) {
 }
 
 Res<> PmmBits::free(Hal::PmmRange range) {
-    if (not _usable.contains(range)) {
-        return Error::invalidArgument("PmmBits::free: pmm range out of bounds");
-    }
-
-    if (not range.aligned(Hal::PAGE_SIZE)) {
-        return Error::invalidArgument("PmmBits::free: pmm range not aligned");
-    }
+    pre$(_usable.overlaps(range));
+    pre$(range.aligned(Hal::PAGE_SIZE));
 
     LockScoped lock(_lock);
+    _bits.setRange(asBitsRange(range), false);
 
-    auto bitsRange = asBitsRange(range);
-    _bits.setRange<false>(bitsRange);
     return Ok();
 }
 
 Res<> PmmBits::take(Hal::PmmRange range) {
-    if (not _usable.overlaps(range)) {
-        return Error::invalidArgument("PmmBits::take: pmm range out of bounds");
-    }
+    pre$(_usable.overlaps(range));
+    pre$(range.aligned(Hal::PAGE_SIZE));
 
-    if (not range.aligned(Hal::PAGE_SIZE)) {
-        return Error::invalidArgument("PmmBits::take: pmm range not aligned");
-    }
+    LockScoped lock(_lock);
+    _bits.setRange(asBitsRange(range), true);
+
+    return Ok();
+}
+
+Res<> PmmBits::mark(Hal::PmmRange range, bool used) {
+    pre$(_usable.overlaps(range));
+    pre$(range.aligned(Hal::PAGE_SIZE));
 
     LockScoped lock(_lock);
     auto       bitsRange = asBitsRange(range);
-    _bits.setRange<true>(bitsRange);
+    logInfo("PmmBits::mark: marking range {:#x} - {:#x} as {}\n",
+            bitsRange.start(),
+            bitsRange.end(),
+            used ? "used"s : "free"s);
+    _bits.setRange(bitsRange, used);
+
     return Ok();
 }
 
