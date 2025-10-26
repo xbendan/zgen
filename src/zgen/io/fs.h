@@ -3,7 +3,7 @@
 #include <sdk-meta/rc.h>
 #include <sdk-meta/vec.h>
 #include <sdk-text/str.h>
-#include <zgen/io/device.h>
+#include <zgen/io/dev.h>
 #include <zgen/io/file.h>
 
 namespace Zgen::Core::Io {

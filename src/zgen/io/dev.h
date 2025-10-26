@@ -6,7 +6,7 @@
 
 namespace Zgen::Core::Io {
 
-struct Device {
+struct Dev {
     enum struct Type {
         Unknown,
 

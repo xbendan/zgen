@@ -1,6 +1,7 @@
 #pragma once
 
 #include <sdk-meta/bits.h>
+#include <sdk-meta/ptr.h>
 #include <zgen/io/fs.h>
 
 namespace Zgen::Core::Io {

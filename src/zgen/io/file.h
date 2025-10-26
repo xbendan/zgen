@@ -8,7 +8,7 @@
 #include <sdk-meta/res.h>
 #include <sdk-meta/time.h>
 #include <sdk-text/str.h>
-#include <zgen/io/device.h>
+#include <zgen/io/dev.h>
 #include <zgen/mm/buffer.h>
 
 namespace Zgen::Core::Io {
@@ -18,8 +18,8 @@ using Sdk::Io::Seek;
 using Sdk::Io::Whence;
 
 struct Node {
-    Rc<Device> device;
-    Path       path;
+    Rc<Dev> device;
+    Path    path;
 };
 
 struct File;

@@ -7,14 +7,14 @@
 #include <sdk-meta/types.h>
 #include <sdk-meta/vec.h>
 #include <sdk-text/str.h>
-#include <zgen/io/device.h>
+#include <zgen/io/dev.h>
 
 namespace Zgen::Core::Io {
 
 using Sdk::Io::Seek;
 using Sdk::Io::Whence;
 
-struct StorageDevice : public Device {
+struct StorDev : public Dev {
     usize _blockSize { 512 };
     usize _blockCount { 0 };
 
