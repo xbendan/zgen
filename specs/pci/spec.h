@@ -4,7 +4,7 @@
 #include <sdk-meta/types.h>
 #include <zgen/hal/io.h>
 
-namespace Zgen::Impls::Pci {
+namespace Pci {
 
 enum Regs : u8 {
     VendorId                = 0x00,
@@ -64,6 +64,20 @@ enum class Class {
     NonEssential     = 0x13,
     CoProcessor      = 0x40,
     Reserved         = 0xFF
+};
+
+enum Command {
+    IoSpace            = (1 << 0),
+    MemorySpace        = (1 << 1),
+    BusMaster          = (1 << 2),
+    SpecialCycle       = (1 << 3),
+    MemWriteInv        = (1 << 4),
+    VgaPaletteSnooping = (1 << 5),
+    ParityError        = (1 << 6),
+    SteppingCtrl       = (1 << 7),
+    SERR               = (1 << 8),
+    FastBackToBack     = (1 << 9),
+    IntDisable         = (1 << 10),
 };
 
 template <Class>
@@ -185,7 +199,7 @@ struct Subclass<Class::Bridge> {
 using ConfigAddress = Zgen::Hal::Reg<u32, 0xcf8>;
 using ConfigData    = Zgen::Hal::Reg<u32, 0xcfc>;
 
-struct Identifier : public Zgen::Hal::Io {
+struct Id : public Zgen::Hal::Io {
     u8  bus, slot, func;
     u16 _vendorId, _deviceId;
     u8  _class, _subclass, _progIf;
@@ -221,4 +235,4 @@ struct Identifier : public Zgen::Hal::Io {
     }
 };
 
-} // namespace Zgen::Impls::Pci
+} // namespace Pci

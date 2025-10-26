@@ -4,13 +4,13 @@
 #include <sdk-meta/dict.h>
 #include <sdk-meta/ref.h>
 #include <sdk-text/str.h>
-#include <zgen/io/device.h>
+#include <zgen/io/dev.h>
 
 namespace Acpi {
 
-using Zgen::Core::Io::Device;
+using Zgen::Core::Io::Dev;
 
-struct ControlDevice : public Device {
+struct ControlDevice : public Dev {
     Dict<Str, _Desc*> tables;
     Rsdt*             rsdt;
     Xsdt*             xsdt;
