@@ -130,6 +130,8 @@ struct _String {
         return buf()[i];
     }
 
+    [[gnu::always_inline]] Unit* buf() { return _len ? _buf : _EMPTY.buf(); }
+
     [[gnu::always_inline]] Unit const* buf() const {
         return _len ? _buf : _EMPTY.buf();
     }
