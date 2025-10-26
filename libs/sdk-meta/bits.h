@@ -28,27 +28,32 @@ struct Bits {
         return (_buf[index / 8] & (1 << (index % 8))) != 0;
     }
 
-    template <bool T>
-    void set(usize index) {
+    void set(usize index, bool used) {
         if (index >= len()) {
             panic("Bits::set: index out of range");
         }
 
-        if constexpr (T) {
+        if (used) {
             _buf[index / 8] |= (1 << (index % 8));
         } else {
             _buf[index / 8] &= ~(1 << (index % 8));
         }
     }
 
-    template <bool T>
-    void setRange(BitsRange range) {
+    void setRange(BitsRange range, bool used) {
         if (range.end() > len()) {
-            // panic("Bits range out of bounds: {} + {} > {}", range._start,
-            // range._size, _len * 8);
+            return;
         }
-        for (usize i = 0; i < range._size; ++i) {
-            set<T>(range._start + i);
+        if (used) {
+            for (usize i = 0; i < range.size(); i++) {
+                _buf[(range.start() + i) / 8]
+                    |= (1 << ((range.start() + i) % 8));
+            }
+        } else {
+            for (usize i = 0; i < range.size(); i++) {
+                _buf[(range.start() + i) / 8]
+                    &= ~(1 << ((range.start() + i) % 8));
+            }
         }
         // TODO: Improve performance by categories operations
     }
@@ -78,7 +83,7 @@ struct Bits {
             }
 
             if (range.size() == count) {
-                setRange<true>(range);
+                setRange(range, true);
                 return range;
             }
         }

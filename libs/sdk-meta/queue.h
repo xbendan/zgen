@@ -5,6 +5,9 @@
 
 namespace Meta {
 
+template <typename T>
+struct Queue { };
+
 template <typename T, usize Capacity>
 struct CircularQueue {
     using Inner = T;

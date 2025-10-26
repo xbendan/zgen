@@ -87,7 +87,8 @@ struct LockProtected {
 template <typename T, Lockable L = Lock>
 LockProtected(T, L&) -> LockProtected<T, L>;
 
-struct ReadWriteLock : Meta::Pinned {
+struct RwLock : Meta::Pinned {
+    Atomic<i32> _state { 0 };
 
     Lock          _lock;
     Atomic<isize> _pendings {};
@@ -160,18 +161,18 @@ struct ReadWriteLock : Meta::Pinned {
 
 struct [[nodiscard]] ReadLockScope : Meta::Pinned {
 
-    ReadWriteLock& _lock;
+    RwLock& _lock;
 
-    ReadLockScope(ReadWriteLock& lock) : _lock(lock) { _lock.acquireRead(); }
+    ReadLockScope(RwLock& lock) : _lock(lock) { _lock.acquireRead(); }
 
     ~ReadLockScope() { _lock.releaseRead(); }
 };
 
 struct [[nodiscard]] WriteLockScope : Meta::Pinned {
 
-    ReadWriteLock& _lock;
+    RwLock& _lock;
 
-    WriteLockScope(ReadWriteLock& lock) : _lock(lock) { _lock.acquireWrite(); }
+    WriteLockScope(RwLock& lock) : _lock(lock) { _lock.acquireWrite(); }
 
     ~WriteLockScope() { _lock.releaseWrite(); }
 };

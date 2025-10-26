@@ -484,10 +484,12 @@ struct Opt {
     [[gnu::always_inline]] constexpr auto mapTo(Callable<T> auto&& func)
         -> Opt<decltype(func(unwrap()))> {
         if (not _present) {
-            return None {};
+            return NONE;
         }
         return func(unwrap());
     }
+
+#define mapTo$(expr) mapTo([&](auto it) { return expr; })
 
     template <typename U>
     [[gnu::always_inline]] constexpr auto mapTo() -> Opt<U>
@@ -498,8 +500,6 @@ struct Opt {
         }
         return static_cast<U>(unwrap());
     }
-
-#define mapTo$(expr) mapTo([&](auto it) { return expr; })
 
     [[gnu::always_inline]] constexpr void ifPresent(Callable<T> auto&& func) {
         if (_present) {

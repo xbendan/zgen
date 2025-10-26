@@ -41,7 +41,7 @@ struct List<T> {
 
     static T*& next(T* value) { return item(value).next; }
 
-    List() noexcept = default;
+    constexpr List() noexcept = default;
 
     List(InitializerList<T> initials);
 
@@ -192,7 +192,7 @@ struct List<T> {
         // TODO: check correctness because AI generated this part
         auto* current = _head;
         while (current) {
-            if (current->value == value) {
+            if (current == &value) {
                 // Found the node to remove
                 if (prev(current))
                     next(prev(current)) = next(current);
@@ -234,6 +234,8 @@ struct List<T> {
         return false;
     }
 
+    bool isEmpty() const { return _count == 0; }
+
     auto iter() {
         return Iter(
             [this, curr = head(), ver = _version] mutable -> Opt<Cursor<T>> {
@@ -265,3 +267,4 @@ struct List {
 } // namespace Meta
 
 using Meta::List;
+using Meta::Lnode;

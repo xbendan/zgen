@@ -82,6 +82,18 @@ struct Range {
         return isAlign(_start, align) && isAlign(_size, align);
     }
 
+    [[gnu::always_inline]] constexpr Range outer(T align) {
+        T    newStart = alignDown(_start, align);
+        Size newSize  = alignUp(end() - newStart, align);
+        return { newStart, newSize };
+    }
+
+    [[gnu::always_inline]] constexpr Range inner(T align) {
+        T    newStart = alignUp(_start, align);
+        Size newSize  = alignDown(end() - newStart, align);
+        return { newStart, newSize };
+    }
+
     [[gnu::always_inline]] constexpr Range slice(Size offset,
                                                  Size length) const {
         return { _start + offset, length };

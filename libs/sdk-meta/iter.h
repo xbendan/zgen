@@ -405,7 +405,7 @@ struct Iter {
 
     constexpr auto exists() const -> bool { return next() != NONE; }
 
-    constexpr auto count() const -> usize {
+    constexpr auto count() -> usize {
         usize cnt = 0;
         for (auto item = next(); item; item = next()) {
             ++cnt;
@@ -413,7 +413,7 @@ struct Iter {
         return cnt;
     }
 
-    constexpr auto count(Meta::Predicate<Item> auto pred) const -> usize {
+    constexpr auto count(Meta::Predicate<Item> auto pred) -> usize {
         usize cnt = 0;
         for (auto item = next(); item; item = next()) {
             if (pred(*item)) {
@@ -443,14 +443,14 @@ struct Iter {
 
 #define defaultIfEmpty$(expr) defaultIfEmpty([&]() { return expr; })
 
-    constexpr auto defaultIfEmpty() const -> Item {
+    constexpr auto defaultIfEmpty() -> Item {
         if (auto v = next()) {
             return v;
         }
         return None {};
     }
 
-    constexpr auto sequenceEquals(auto it) const
+    constexpr auto sequenceEquals(auto it)
         requires(Meta::Same<Item, typename decltype(it)::Item>
                  and Meta::Equatable<V>)
     {
@@ -492,9 +492,9 @@ struct Iter {
 
     // MARK: - [Index Access]
 
-    constexpr auto elementAt(usize index) const -> Item {
+    constexpr auto elementAt(usize index) -> Item {
         if (index < 0) [[unlikely]] {
-            panic("Iter::elementAt: index out of bounds");
+            return NONE;
         }
         usize count = 0;
         for (auto item = next(); item; item = next()) {
@@ -506,7 +506,7 @@ struct Iter {
         return None {};
     }
 
-    constexpr auto elementAt(Meta::Index index) const -> Item {
+    constexpr auto elementAt(Meta::Index index) -> Item {
         usize i = index.val;
         if (index.inverse) {
             decltype(*this) copy = *this;
@@ -563,26 +563,26 @@ struct Iter {
 
     // MARK: - [First & Last]
 
-    constexpr auto first() const -> Opt<V> {
+    constexpr auto first() -> Item {
         auto item = next();
         if (item) {
             return *item;
         }
-        return None {};
+        return NONE;
     }
 
-    constexpr auto first(Meta::Predicate<Item> auto f) -> Opt<V> {
+    constexpr auto first(auto f) -> Item {
         for (auto item = next(); item; item = next()) {
             if (f(*item)) {
-                return *item;
+                return item;
             }
         }
-        return None {};
+        return NONE;
     }
 
-#define first$(expr) first([&](auto it) -> bool { return expr; })
+#define first$(expr) first([&](auto& it) -> bool { return expr; })
 
-    constexpr auto last() const -> Opt<V> {
+    constexpr auto last() -> Opt<V> {
         Opt<V> last {};
         for (auto item = next(); item; item = next()) {
             last = *item;
@@ -590,7 +590,7 @@ struct Iter {
         return last;
     }
 
-    constexpr auto last(Meta::Predicate<Item> auto f) const -> Opt<V> {
+    constexpr auto last(Meta::Predicate<Item> auto f) -> Opt<V> {
         Opt<V> last {};
         for (auto item = next(); item; item = next()) {
             if (f(*item)) {
@@ -602,7 +602,7 @@ struct Iter {
 
 #define last$(expr) last([&](auto it) { return expr; })
 
-    constexpr auto lastOrDefault(V const& def) const -> V {
+    constexpr auto lastOrDefault(V const& def) -> V {
         Opt<V> last {};
         for (auto item = next(); item; item = next()) {
             last = *item;
@@ -790,11 +790,22 @@ constexpr auto range(T start, T end) {
     return range(start, end, static_cast<T>(1));
 }
 
+// template <Sliceable S>
+// constexpr auto iter(S& slice) {
+//     return Iter([&slice, i = 0uz] mutable -> typename S::Inner* {
+//         if (i >= slice.len()) {
+//             return nullptr;
+//         }
+
+//         return &slice.buf()[i++];
+//     });
+// }
+
 template <Sliceable S>
-constexpr auto iter(S const& slice) {
-    return Iter([&slice, i = 0uz] mutable -> typename S::Inner const* {
+constexpr auto iter(S& slice) {
+    return Iter([&slice, i = 0uz] mutable -> Opt<typename S::Inner&> {
         if (i >= slice.len()) {
-            return nullptr;
+            return NONE;
         }
 
         return &slice.buf()[i++];
