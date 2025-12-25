@@ -1,7 +1,6 @@
 #pragma once
 
 #include <sdk-meta/hash.h>
-#include <sdk-meta/panic.h>
 #include <sdk-meta/traits.h>
 #include <sdk-meta/types.h>
 #include <sdk-meta/utility.h>
@@ -61,14 +60,14 @@ struct Slice {
     T const* _buf {};
     usize    _len {};
 
-    static constexpr Slice fromNullterminated(T const* buf) {
+    static constexpr Slice nullterminated(T const* buf) {
         usize len = 0;
         while (buf[len])
             len++;
         return { buf, len };
     }
 
-    static constexpr Slice fromNullterminated(T const* buf, usize maxLen) {
+    static constexpr Slice nullterminated(T const* buf, usize maxLen) {
         usize len = 0;
         while (buf[len] and len < maxLen)
             len++;
@@ -124,23 +123,32 @@ using CharSequence = Slice<char>;
 
 static_assert(Sliceable<Bytes>);
 
-constexpr auto begin(Sliceable auto const& slice) {
-    return slice.buf();
-}
-
-constexpr auto end(Sliceable auto const& slice) {
-    return slice.buf() + slice.len();
-}
-
-constexpr auto slice(Sliceable auto const& s, usize start, usize end)
-    -> Slice<Meta::RemoveCvRef<decltype(s[0uz])>> {
-    if (start > end || end > s.len()) [[unlikely]] {
-        panic("Slice::slice: invalid range: {}..{} for length {}",
-              start,
-              end,
-              s.len());
+constexpr auto slice(Sliceable auto const& s, usize begin, usize end)
+    -> Slice<typename Meta::RemoveCvRef<decltype(s)>::Inner> {
+    if (begin > end || end > s.len()) [[unlikely]] {
+        panic("slice: invalid slice indices: {}..{} for length {}");
+        //   begin,
+        //   end,
+        //   s.len());
     }
-    return { s.buf() + start, end - start };
+    return { s.buf() + begin, end - begin };
+}
+
+constexpr auto slice(Sliceable auto const& s, usize begin = 0)
+    -> Slice<typename Meta::RemoveCvRef<decltype(s)>::Inner> {
+    return slice(s, begin, s.len());
+}
+
+constexpr auto begin(Sliceable auto const& s) {
+    return s.buf();
+}
+
+constexpr auto end(Sliceable auto const& s) {
+    return s.buf() + s.len();
+}
+
+constexpr usize len(Sliceable auto const& s) {
+    return s.len();
 }
 
 constexpr bool isEmpty(Sliceable auto const& s) {
@@ -161,20 +169,11 @@ constexpr auto last(Sliceable auto const& s) -> decltype(s[0uz]) {
     return s[s.len() - 1];
 }
 
-constexpr usize len(Sliceable auto const& s) {
-    return s.len();
-}
-
 template <Sliceable S>
 Bytes bytes(S const& s) {
     return { reinterpret_cast<byte const*>(s.buf()),
              s.len() * sizeof(typename S::Inner) };
 };
-
-template <Sliceable S, typename T = typename S::Inner>
-constexpr Slice<T> slice(S const& s) {
-    return { s.buf(), s.len() };
-}
 
 template <typename T>
 constexpr void reverse(Slice<T> slice) {

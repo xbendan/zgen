@@ -1,5 +1,6 @@
 #pragma once
 
+#include <sdk-io/buf.h>
 #include <sdk-io/text.h>
 #include <sdk-meta/box.h>
 #include <sdk-meta/endian.h>
@@ -10,6 +11,7 @@
 #include <sdk-meta/slice.h>
 #include <sdk-meta/tuple.h>
 #include <sdk-meta/types.h>
+#include <sdk-meta/vec.h>
 #include <sdk-text/parse.h>
 #include <sdk-text/runes.h>
 #include <sdk-text/traits.h>
@@ -94,22 +96,23 @@ inline String format(Str format) {
 
 template <typename... Ts>
 inline String format(Str format, Ts&&... ts) {
-    Io::StringWriter writer {};
-    Args<Ts...>      args { ::forward<Ts>(ts)... };
-    _format(writer, format, args).unwrap("formating string");
-    return writer.take();
+    Io::StringBuf buf {};
+
+    Args<Ts...> args { ::forward<Ts>(ts)... };
+    _format(buf, format, args).unwrap("formating string");
+    return buf.toString();
 }
 
 template <typename T>
 inline String toString(T const& t, Str format = "") {
-    Io::StringWriter writer {};
-    Formatter<T>     formatter;
+    Io::StringBuf buf {};
+    Formatter<T>  formatter;
     if constexpr (requires(Runes& rs) { formatter.parse(rs); }) {
         Runes rs { format };
         formatter.parse(rs);
     }
-    formatter.format(writer, t).unwrap("formating string");
-    return writer.take();
+    formatter.format(buf, t).unwrap("formating string");
+    return buf.toString();
 }
 
 enum struct Align {
@@ -142,7 +145,7 @@ struct Formatter<Aligned<T>> {
     }
 
     Res<> format(Io::TextWriter& writer, Aligned<T> val) {
-        Io::StringWriter<80> buf;
+        Io::StringBuf buf;
         try$(_innerFmt.format(buf, val._inner));
         usize width = buf.len();
 
@@ -150,25 +153,25 @@ struct Formatter<Aligned<T>> {
             usize pad = val._width - width;
             switch (val._align) {
                 case Align::LEFT:
-                    try$(writer.writeStr(buf.str()));
+                    try$(writer.writeStr(buf.toStr()));
                     for (usize i = 0; i < pad; i++)
                         try$(writer.writeRune(' '));
                     break;
                 case Align::RIGHT:
                     for (usize i = 0; i < pad; i++)
                         try$(writer.writeRune(' '));
-                    try$(writer.writeStr(buf.str()));
+                    try$(writer.writeStr(buf.toStr()));
                     break;
                 case Align::CENTER:
                     for (usize i = 0; i < pad / 2; i++)
                         try$(writer.writeRune(' '));
-                    try$(writer.writeStr(buf.str()));
+                    try$(writer.writeStr(buf.toStr()));
                     for (usize i = 0; i < pad / 2; i++)
                         try$(writer.writeRune(' '));
                     break;
             }
         } else {
-            try$(writer.writeStr(buf.str()));
+            try$(writer.writeStr(buf.toStr()));
         }
 
         return Ok();
@@ -260,9 +263,9 @@ struct Formatter<Cased<T>> {
     }
 
     Res<> format(Io::TextWriter& writer, Cased<T> val) {
-        Io::StringWriter sw;
-        try$(_innerFmt.format(sw, val._inner));
-        String result = try$(changeCase(sw.str(), val._case));
+        Io::StringBuf buf;
+        try$(_innerFmt.format(buf, val._inner));
+        String result = try$(changeCase(buf.toStr(), val._case));
         try$(writer.writeStr(result.str()));
         return Ok();
     }
@@ -335,7 +338,7 @@ struct NumberFormatter {
     }
 
     Res<> formatUnsigned(Io::TextWriter& writer, usize val) {
-        auto digit = [this](usize v) {
+        auto digit = [](usize v) {
             if (v < 10) {
                 return '0' + v;
             }
@@ -471,7 +474,7 @@ struct StringFormatter {
             return writer.writeStr(text);
 
         try$(writer.writeRune('"'));
-        for (Rune c : iter(text)) {
+        for (Rune c : foreach (text)) {
             if (c == '"')
                 try$(writer.writeStr("\\\""s));
             else if (c == '\\')
@@ -513,7 +516,7 @@ struct Formatter<_String<E>> : StringFormatter<E> {
 template <>
 struct Formatter<char const*> : StringFormatter<Utf8> {
     Res<> format(Io::TextWriter& writer, char const* text) {
-        Str str = Str::fromNullterminated(text);
+        Str str = Str::nullterminated(text);
         return StringFormatter<Utf8>::format(writer, str);
     }
 };
@@ -555,12 +558,12 @@ struct Formatter<uflat> : Formatter<u64> {
     }
 };
 
-template <>
-struct Formatter<std::nullptr_t> {
-    Res<> format(Io::TextWriter& writer, std::nullptr_t) {
-        return writer.writeStr("nullptr"s);
-    }
-};
+// template <>
+// struct Formatter<std::nullptr_t> {
+//     Res<> format(Io::TextWriter& writer, std::nullptr_t) {
+//         return writer.writeStr("nullptr"s);
+//     }
+// };
 
 template <typename T>
 struct Formatter<Rc<T>> {
@@ -672,7 +675,7 @@ struct Formatter<Ok<T>> {
 template <>
 struct Formatter<Error> {
     Res<> format(Io::TextWriter& writer, Error const& val) {
-        Str msg = Str::fromNullterminated(val.msg());
+        Str msg = Str::nullterminated(val.msg());
         try$(writer.writeStr(msg));
         return Ok();
     }

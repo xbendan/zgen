@@ -7,10 +7,9 @@
 
 namespace Sdk {
 
-Opt<Io::TextReader&> in();
-
-Opt<Io::TextWriter&> out();
-
-Opt<Io::TextWriter&> err();
+static inline Io::Null             _null;
+static inline Opt<Io::TextReader&> in;
+static inline Opt<Io::TextWriter&> out;
+static inline Opt<Io::TextWriter&> err;
 
 } // namespace Sdk

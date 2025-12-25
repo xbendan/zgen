@@ -2,9 +2,8 @@
 
 #include <sdk-meta/decl.h>
 #include <sdk-meta/math.h>
-#include <sdk-meta/opt.h>
+#include <sdk-meta/slice.h>
 #include <sdk-meta/types.h>
-#include <sdk-meta/vec.h>
 
 template <typename T, typename = struct _RangeTag>
 struct Range {
@@ -114,9 +113,9 @@ struct Range {
         return U { start(), size() };
     }
 
-    Opt<bool> ensureAligned(T align) const {
+    bool ensureAligned(T align) const {
         if (not isAlign(_start, align) or not isAlign(_size, align))
-            return None {};
+            return false;
 
         return true;
     }
@@ -131,14 +130,6 @@ struct Range {
 
     [[gnu::always_inline]] constexpr Range offset(T offset) const {
         return { _start + offset, _size };
-    }
-
-    [[gnu::always_inline]] constexpr Vec<T> toVec() const {
-        Vec<T> vec;
-        for (T i = 0; i < _size; i++) {
-            vec.push(_start + i);
-        }
-        return vec;
     }
 
     [[gnu::always_inline]] constexpr Bytes bytes() const {

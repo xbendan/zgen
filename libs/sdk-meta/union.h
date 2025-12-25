@@ -3,7 +3,6 @@
 #include <sdk-meta/cursor.h>
 #include <sdk-meta/hash.h>
 #include <sdk-meta/math.h>
-#include <sdk-meta/panic.h>
 #include <sdk-meta/traits.h>
 #include <sdk-meta/types.h>
 
@@ -159,13 +158,13 @@ struct Union {
 
     [[gnu::always_inline]] bool valid() const { return _index < sizeof...(Ts); }
 
-    template <Meta::Contains<Ts...> T>
-    std::partial_ordering operator<=>(T const& other) const {
-        if constexpr (Meta::Comparable<T>)
-            if (is<T>())
-                return unwrap<T>() <=> other;
-        return std::partial_ordering::unordered;
-    }
+    // template <Meta::Contains<Ts...> T>
+    // std::partial_ordering operator<=>(T const& other) const {
+    //     if constexpr (Meta::Comparable<T>)
+    //         if (is<T>())
+    //             return unwrap<T>() <=> other;
+    //     return std::partial_ordering::unordered;
+    // }
 
     template <Meta::Contains<Ts...> T>
         requires Meta::Equatable<T>
@@ -175,13 +174,13 @@ struct Union {
         return false;
     }
 
-    std::partial_ordering operator<=>(Union const& other) const {
-        if (_index == other._index)
-            return visit([&]<typename T>(T const& ptr)
-                             requires Meta::Comparable<T>
-            { return ptr <=> other.unwrap<T>(); });
-        return std::partial_ordering::unordered;
-    }
+    // std::partial_ordering operator<=>(Union const& other) const {
+    //     if (_index == other._index)
+    //         return visit([&]<typename T>(T const& ptr)
+    //                          requires Meta::Comparable<T>
+    //         { return ptr <=> other.unwrap<T>(); });
+    //     return std::partial_ordering::unordered;
+    // }
 
     bool operator==(Union const& other) const {
         if (_index == other._index)

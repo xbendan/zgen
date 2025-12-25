@@ -5,7 +5,6 @@
 #include <sdk-meta/types.h>
 #include <sdk-terminal/canvas.h>
 #include <sdk-terminal/style.h>
-#include <sdk-text/builder.h>
 #include <sdk-text/format.h>
 
 namespace Sdk::Cli {

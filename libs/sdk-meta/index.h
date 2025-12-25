@@ -16,16 +16,25 @@ struct Index {
           inverse(inv) { }
 
     [[gnu::always_inline]] constexpr operator usize() const { return val; }
+
+    [[gnu::always_inline]] constexpr auto operator<=>(
+        Index const& other) const {
+        return val <=> other.val;
+    }
+
+    [[gnu::always_inline]] constexpr auto operator<=>(usize other) const {
+        return val <=> other;
+    }
+
+    [[gnu::always_inline]] constexpr bool operator==(Index const& other) const {
+        return val == other.val;
+    }
 };
 
 // clang-format off
 
 constexpr auto operator""i(unsigned long long int v) {
     return Index { static_cast<usize>(v), false };
-}
-
-constexpr auto operator""ie(unsigned long long int v) {
-    return Index { static_cast<usize>(v), true };
 }
 
 using IndexRange = Range<Index, struct _IndexRangeTag>;

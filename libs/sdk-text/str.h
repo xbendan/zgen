@@ -57,7 +57,7 @@ struct _Str : Slice<U> {
     }
 };
 
-using Str = _Str<Zgen::Core::Encoding>;
+using Str = _Str<Realms::Core::Encoding>;
 
 template <StaticEncoding E>
 struct _String {
@@ -155,7 +155,7 @@ struct _String {
     }
 };
 
-using String = _String<Zgen::Core::Encoding>;
+using String = _String<Realms::Core::Encoding>;
 
 } // namespace Sdk::Text
 

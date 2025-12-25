@@ -16,9 +16,12 @@ struct Loc {
     usize column {};
 
     static constexpr Loc current(Str   file   = __FILE__,
-                                 Str   func   = __PRETTY_FUNCTION__,
+                                 Str   func   = "",
                                  usize line   = __LINE__,
                                  usize column = 0) {
+        if (func == "") {
+            func = __PRETTY_FUNCTION__;
+        }
         return { file, func, line, column };
     }
 };
@@ -56,12 +59,13 @@ inline Lock  _lock;
 inline bool  _useTime;
 
 inline void _log(Level level, Str fmt, Text::_Args& va) {
-    if (level.val < _level.val or not Sdk::out()) {
+    if (level.val < _level.val or not Sdk::out) {
         return;
     }
     LockScoped lock(_lock);
 
-    auto& dest = (level >= ERROR) ? Sdk::err().unwrap() : Sdk::out().unwrap();
+    auto& dest = (level >= ERROR) ? Sdk::err.unwrapOrElse(_null)
+                                  : Sdk::out.unwrapOrElse(_null);
 
     // catch$(Text::format(dest, "{}", Cli::Style::Default));
     catch$(Text::format(
@@ -77,7 +81,7 @@ inline void _log(Level level, Str fmt, Text::_Args& va) {
 }
 
 inline void logEmptyLines(usize n) {
-    auto& dest = Sdk::out().unwrap();
+    auto& dest = Sdk::out.unwrapOrElse(_null);
     for (usize i = 0; i < n; i++) {
         catch$(Text::format(
             dest, "[{}]\n", Text::aligned(INFO.name, Text::Align::LEFT, 5)));

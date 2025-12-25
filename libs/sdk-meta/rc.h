@@ -6,7 +6,6 @@
 #include <sdk-meta/lock.h>
 #include <sdk-meta/manual.h>
 #include <sdk-meta/opt.h>
-#include <sdk-meta/panic.h>
 #include <sdk-meta/types.h>
 
 namespace Meta {
@@ -111,16 +110,16 @@ struct _Rc {
 
     constexpr _Rc() = delete;
 
-    constexpr _Rc(_Move, _Cell<L>* ptr) : _cell(ptr->refStrong()) { }
+    constexpr _Rc(Move, _Cell<L>* ptr) : _cell(ptr->refStrong()) { }
 
     constexpr _Rc(_Rc const& other) : _cell(other._cell->refStrong()) { }
 
     constexpr _Rc(_Rc&& other) : _cell(exchange(other._cell, nullptr)) { }
 
-    template <Meta::Derive<T> U>
+    template <Meta::Extends<T> U>
     constexpr _Rc(_Rc<L, U> const& other) : _cell(other._cell->refStrong()) { }
 
-    template <Meta::Derive<T> U>
+    template <Meta::Extends<T> U>
     constexpr _Rc(_Rc<L, U>&& other) : _cell(exchange(other._cell, nullptr)) { }
 
     constexpr ~_Rc() {
@@ -176,7 +175,7 @@ struct _Rc {
         return _cell->template unwrap<T>();
     }
 
-    template <Meta::Derive<T> U>
+    template <Meta::Extends<T> U>
     constexpr U const& unwrap() const {
         ensure();
         if (not is<U>()) [[unlikely]]
@@ -185,7 +184,7 @@ struct _Rc {
         return _cell->template unwrap<U>();
     }
 
-    template <Meta::Derive<T> U>
+    template <Meta::Extends<T> U>
     constexpr U& unwrap() {
         ensure();
         if (not is<U>()) [[unlikely]]
@@ -200,7 +199,7 @@ struct _Rc {
             return nullptr;
 
         if (not Meta::Same<T, U>
-            and not Meta::Derive<T, U>
+            and not Meta::Extends<T, U>
             and not(_cell->id() == Meta::idOf<U>())) {
             return nullptr;
         }
@@ -214,7 +213,7 @@ struct _Rc {
             return nullptr;
 
         if (not Meta::Same<T, U>
-            and not Meta::Derive<T, U>
+            and not Meta::Extends<T, U>
             and not(_cell->id() == Meta::idOf<U>())) {
             return nullptr;
         }
@@ -232,10 +231,10 @@ struct _Rc {
     template <typename U>
     constexpr Opt<_Rc<L, U>> cast() {
         if (not is<U>()) {
-            return None {};
+            return NONE;
         }
 
-        return _Rc<L, U>(Move, _cell);
+        return _Rc<L, U>(MOVE, _cell);
     }
 
     template <typename UL, Meta::Comparable<T> U>
@@ -275,18 +274,18 @@ struct _Weak {
 
     constexpr _Weak() = delete;
 
-    template <Meta::Derive<T> U>
+    template <Meta::Extends<T> U>
     constexpr _Weak(_Rc<L, U> const& other) : _cell(other._cell->refWeak()) { }
 
-    template <Meta::Derive<T> U>
+    template <Meta::Extends<T> U>
     constexpr _Weak(_Weak<L, U> const& other)
         : _cell(other._cell->refWeak()) { }
 
-    template <Meta::Derive<T> U>
+    template <Meta::Extends<T> U>
     constexpr _Weak(_Weak<L, U>&& other)
         : _cell(exchange(other._cell, nullptr)) { }
 
-    constexpr _Weak(_Move, _Cell<L>* ptr) : _cell(ptr->refWeak()) { }
+    constexpr _Weak(Move, _Cell<L>* ptr) : _cell(ptr->refWeak()) { }
 
     constexpr _Weak& operator=(_Rc<L, T> const& other) {
         *this = _Weak(other);
@@ -316,7 +315,7 @@ struct _Weak {
     Opt<_Rc<L, T>> upgrade() const {
         if (not _cell or _cell->_strong == 0)
             return None {};
-        return _Rc<L, T>(Move, _cell);
+        return _Rc<L, T>(MOVE, _cell);
     }
 };
 
@@ -336,12 +335,12 @@ using WeakArc = _Weak<Lock, T>;
 /// a strong reference to it.
 template <typename T, typename... Args>
 constexpr static Rc<T> makeRc(Args&&... args) {
-    return { Move, new Cell<Unlock, T>(Meta::forward<Args>(args)...) };
+    return { MOVE, new Cell<Unlock, T>(Meta::forward<Args>(args)...) };
 }
 
 template <typename T, typename... Args>
 constexpr static Arc<T> makeArc(Args&&... args) {
-    return { Move, new Cell<Lock, T>(Meta::forward<Args>(args)...) };
+    return { MOVE, new Cell<Lock, T>(Meta::forward<Args>(args)...) };
 }
 
 template <typename T>
@@ -400,7 +399,7 @@ struct AtomicRefCounted {
             panic("AtomicRefCounted::ref(): ref count overflow");
         }
 
-        auto count = _refCount.fetchAdd(1, MemoryOrder::Relaxed);
+        _refCount.fetchAdd(1, MemoryOrder::Relaxed);
     }
 
     bool unref() const {

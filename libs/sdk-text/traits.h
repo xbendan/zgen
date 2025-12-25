@@ -1,6 +1,5 @@
 #pragma once
 
-#include <sdk-meta/panic.h>
 #include <sdk-text/rune.h>
 
 namespace Sdk::Text {

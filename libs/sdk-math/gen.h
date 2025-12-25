@@ -18,7 +18,7 @@ template <Meta::Integral T>
 struct LoopIdGen {
     T _cur = Limits<T>::MIN;
 
-    Res<T> next(T limit = Limits<T>::max()) {
+    T next(T limit = Limits<T>::max()) {
         if (_cur == Limits<T>::MAX) {
             _cur = Limits<T>::MIN;
         }

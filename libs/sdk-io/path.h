@@ -18,8 +18,6 @@ struct Path {
     String operator[](usize index) const { return comp[index]; }
 
     usize len() const { return comp.len(); }
-
-    auto operator<=>(Path const& other) const = default;
 };
 
 } // namespace Sdk::Io

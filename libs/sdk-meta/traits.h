@@ -6,11 +6,11 @@
 
 namespace Meta {
 
-template <typename Derived, typename Base>
-concept Derive = __is_base_of(Base, Derived);
-
 template <typename T, typename... Args>
 concept Constructible = requires { ::new T(declval<Args>()...); };
+
+template <typename Extendsd, typename Base>
+concept Extends = __is_base_of(Base, Extendsd);
 
 template <typename T>
 concept DefaultConstructible = Constructible<T>;
@@ -33,17 +33,64 @@ inline constexpr bool _Same<T, T> = true;
 template <typename T, typename U>
 concept Same = _Same<T, U>;
 
+template <typename T>
+concept Trivial = __is_trivial(T);
+
+template <typename T>
+concept StandardLayout = __is_standard_layout(T);
+
+template <typename T>
+concept Pod = Trivial<T> and StandardLayout<T>;
+
+template <typename T>
+concept TrivialyCopyable = __is_trivially_copyable(T);
+
+template <typename T, typename... Ts>
+concept Contains = (Same<T, Ts> or ...);
+
+template <typename T>
+constexpr inline bool _Integral = requires(T t, T* p, void (*f)(T)) {
+    reinterpret_cast<T>(t);
+    f(0);
+    p + t;
+};
+
+template <typename T>
+concept Integral = _Integral<T>;
+
+template <typename T>
+inline constexpr bool _Boolean = false;
+
+template <>
+inline constexpr bool _Boolean<bool> = true;
+
+template <typename T>
+concept Boolean = _Boolean<T>;
+
+template <typename T>
+concept Float = Contains<T, f32, f64, f128>;
+
+template <typename T>
+concept Arithmetic = Integral<T> or Float<T>;
+
+template <typename T>
+concept Void = Same<T, void>;
+
 /// A type is comparable if it can be compared using the <=> operator.
 /// Comparable does not imply Equatable.
 template <typename T, typename U = T>
 concept Comparable = requires(T const& a, U const& b) {
-    { a <=> b } -> Same<decltype(a <=> b)>;
+    { a < b } -> Boolean;
+    { a > b } -> Boolean;
+    { a <= b } -> Boolean;
+    { a >= b } -> Boolean;
 };
 
 /// A type is equatable if it can be compared for equality.
 template <typename T, typename U = T>
 concept Equatable = requires(T const& a, U const& b) {
     { a == b } -> Same<decltype(a == b)>;
+    { a != b } -> Same<decltype(a != b)>;
 };
 
 template <typename T, typename U = T>
@@ -59,9 +106,6 @@ template <typename Tp, typename T, typename U = T>
 concept Comparator = requires(Tp t, T const& a, U const& b) {
     { t(a, b) } -> Meta::Same<bool>;
 };
-
-template <typename T, typename... Ts>
-concept Contains = (Same<T, Ts> or ...);
 
 namespace _ {
 
@@ -194,18 +238,6 @@ template <typename T>
 using RemoveCvRef = RemoveCv<RemoveRef<T>>;
 
 template <typename T>
-concept Trivial = __is_trivial(T);
-
-template <typename T>
-concept StandardLayout = __is_standard_layout(T);
-
-template <typename T>
-concept Pod = Trivial<T> and StandardLayout<T>;
-
-template <typename T>
-concept TrivialyCopyable = __is_trivially_copyable(T);
-
-template <typename T>
 concept Signed = Comparable<T> and (static_cast<T>(-1) < static_cast<T>(0));
 
 template <typename T>
@@ -227,37 +259,6 @@ void test(int) = delete;
 
 template <typename T>
 concept ScopedEnum = Enum<T> and requires { _::test(T {}); };
-
-template <typename T>
-constexpr inline bool _Integral = requires(T t, T* p, void (*f)(T)) {
-    reinterpret_cast<T>(t);
-    f(0);
-    p + t;
-};
-
-template <typename T>
-concept Integral = _Integral<T>;
-
-template <typename T>
-inline constexpr bool _Boolean = false;
-
-template <>
-inline constexpr bool _Boolean<bool> = true;
-
-template <typename T>
-concept Boolean = _Boolean<T>;
-
-template <typename T>
-concept Float = Same<T, f32> or Same<T, f64> or Same<T, f128>;
-
-template <typename T>
-concept Arithmetic = Integral<T> or Float<T>;
-
-// template <typename T>
-// concept Array = __is_array(T);
-
-template <typename T>
-concept Void = Same<T, void>;
 
 template <typename T>
 concept Fundamental = Arithmetic<T> or Void<T>;

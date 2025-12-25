@@ -1,270 +1,235 @@
 #pragma once
 
-#include <sdk-meta/cursor.h>
+#include <sdk-meta/cond.h>
 #include <sdk-meta/iter.h>
 #include <sdk-meta/opt.h>
-#include <sdk-meta/panic.h>
 #include <sdk-meta/traits.h>
 #include <sdk-meta/types.h>
 
-namespace Meta {
-
 template <typename T>
-struct Lnode : Meta::Pinned {
-    T* prev { nullptr };
-    T* next { nullptr };
+struct LinkedTrait {
+    T* _next;
+    T* _prev;
+
+    [[gnu::always_inline]] constexpr bool operator==(
+        LinkedTrait const& other) const {
+        return this == &other;
+    }
 };
 
 template <typename T>
-concept HasLnode = requires(T& t) {
-    requires Meta::Same<Meta::RemoveCvRef<decltype(T::lnode)>, Lnode<T>>;
+concept ILinked = Meta::Extends<T, LinkedTrait<T>>;
+
+namespace _ {
+template <typename T>
+struct Node {
+    T        _value;
+    Node<T>* _next;
+    Node<T>* _prev;
 };
-
-template <typename>
-struct List;
-
-// MARK: - Intrusive List
+} // namespace _
 
 template <typename T>
-    requires(HasLnode<T>)
-struct List<T> {
-    T*    _head;
-    T*    _tail;
+class List {
+    struct Node {
+        Node *_next, *_prev;
+        T     _value;
+    };
+    using Inner = T;
+    using Elem  = Cond<ILinked<T>, T, Node>;
+
+    Elem* _head;
+    Elem* _tail;
     usize _count;
-    usize _version;
 
-    constexpr static auto T::* Lnode = &T::lnode;
+    static constexpr Elem* wrap(T const& value) {
+        if constexpr (ILinked<T>) {
+            return &value;
+        } else {
+            return new Elem { value, nullptr, nullptr };
+        }
+    }
 
-    static auto& item(T* value) { return value->*Lnode; }
+    static constexpr T const& unwrap(Elem const* elem) {
+        if constexpr (ILinked<T>) {
+            return *elem;
+        } else {
+            return elem->_value;
+        }
+    }
 
-    static T*& prev(T* value) { return item(value).prev; }
+public:
+    constexpr List() noexcept : _head(nullptr), _tail(nullptr), _count(0) { }
 
-    static T*& next(T* value) { return item(value).next; }
+    template <Meta::CopyConstructible<T> U>
+    List(List<U> const& other) : _head(nullptr),
+                                 _tail(nullptr),
+                                 _count(0) { }
 
-    constexpr List() noexcept = default;
-
-    List(InitializerList<T> initials);
-
-    template <typename U = T>
-        requires(Meta::CopyConstructible<T, U>)
-    List(List<U> const& other) {
+    template <Meta::MoveConstructible<T> U>
+    List(List<U>&& other) noexcept {
         clear();
-        for (auto& item : other) {
-            append(item);
-        }
+        ::swap(_head, other._head);
+        ::swap(_tail, other._tail);
+        ::swap(_count, other._count);
     }
 
-    template <typename U = T>
-        requires(Meta::Convertible<U, T>)
-    List(List<U>&& other) noexcept
-        : _head(other._head),
-          _tail(other._tail),
-          _count(other._count) {
-        other._head  = nullptr;
-        other._tail  = nullptr;
-        other._count = 0;
+    ~List() { clear(); }
 
-        other._version = 0;
-    }
+    Elem* head() const { return _head; }
 
-    T const& operator[](usize index) const {
-        if (index >= _count) {
-            panic("List::operator[]: index out of bounds.");
-        }
-        return at(index).unwrap();
-    }
+    Elem* tail() const { return _tail; }
 
-    T& operator[](usize index) {
-        if (index >= _count) {
-            panic("List::operator[]: index out of bounds.");
-        }
-        return at(index).unwrap();
-    }
+    // MARK: - Iterators
 
-    T* head() { return _head; }
+    // MARK: - Capacity
 
-    T const* head() const { return _head; }
+    [[gnu::always_inline]] bool isEmpty() const { return _count == 0; }
 
-    T* tail() { return _tail; }
+    [[gnu::always_inline]] usize size() const { return _count; }
 
-    T const* tail() const { return _tail; }
+    // MARK: - Modifiers
 
-    usize count() const { return _count; }
-
-    void insert(usize index, T const& value) {
-        if (index > _count) {
-            panic("List::insert: index out of bounds.");
-        }
-
-        auto* p = &value;
-        if (index == 0)
-            prepend(value);
-        else if (index == _count)
-            append(value);
-        else {
-            // Traverse to the node before the insertion point
-            auto* current = _head;
-            for (usize i = 0; i < index - 1; ++i)
-                current = current->item.next;
-            next(p) = next(current);
-            prev(p) = current;
-            if (next(current) != nullptr)
-                prev(next(current)) = p;
-            else {
-                _tail = p;
-            }
-            next(current) = p;
-        }
-    }
-
-    void prepend(T const& value) {
-        auto* p = &value;
-
-        if (_head == NONE)
-            _head = _tail = p;
-        else {
-            next(p)     = _head;
-            prev(_head) = p;
-            _head       = p;
-        }
-        prev(p) = nullptr;
-
-        _count++;
-        _version++;
-    }
-
-    void append(T const& value) {
-        auto* p = &value;
-
-        if (_head == NONE)
-            _head = _tail = p;
-        else {
-            next(_tail) = p;
-            prev(p)     = _tail;
-            _tail       = p;
-        }
-        next(p) = nullptr;
-
-        _count++;
-        _version++;
-    }
-
-    Opt<T&> at(usize index) {
-        if (index >= _count) {
-            return NONE;
-        }
-        // Traverse the list to find the node at the given index
-        auto* current = _head;
-        for (usize i = 0; i < index; ++i) {
-            current = current->next;
-        }
-        return &current->value;
-    }
-
-    void remove(usize index) {
-        // TODO: check correctness because AI generated this part
-        if (index >= _count) {
-            panic("List::remove: index out of bounds.");
-        }
-
-        auto* current = _head;
-        for (usize i = 0; i < index; ++i)
-            current = next(current);
-
-        if (prev(current))
-            next(prev(current)) = next(current);
-        else
-            _head = next(current);
-
-        if (next(current))
-            prev(next(current)) = prev(current);
-        else
-            _tail = prev(current);
-
-        next(current) = nullptr;
-        prev(current) = nullptr;
-
-        _count--;
-        _version++;
-    }
-
-    void remove(T const& value) {
-        // TODO: check correctness because AI generated this part
-        auto* current = _head;
-        while (current) {
-            if (current == &value) {
-                // Found the node to remove
-                if (prev(current))
-                    next(prev(current)) = next(current);
-                else
-                    _head = next(current);
-
-                if (next(current))
-                    prev(next(current)) = prev(current);
-                else
-                    _tail = prev(current);
-
-                delete current;
-                _count--;
-                _version++;
-                return;
-            }
-            current = next(current);
-        }
-    }
-
-    void clear() {
-        while (_head) {
-            auto* next = _head->next;
+    [[clang::always_inline]] void clear() {
+        while (_head != nullptr) {
+            Elem* n = _head->_next;
             delete _head;
-            _head = next;
+            _head = n;
         }
+
         _tail  = nullptr;
         _count = 0;
-
-        _version = 0;
     }
 
-    bool contains(T const& value) const {
-        for (auto* current = _head; current; current = current->next) {
-            if (current->value == value) {
-                return true;
-            }
+    [[clang::always_inline]] void insert(usize index, T const& value) { }
+
+    template <typename... Args>
+    [[clang::always_inline]] void emplace(Args&&... args) {
+        Elem* n = new Elem { T(::forward<Args>(args)...) };
+
+        if (_head == NONE)
+            _head = _tail = n;
+        else {
+            n->_prev     = _tail;
+            _tail->_next = n;
+            _tail        = n;
         }
-        return false;
+        n->_next = nullptr;
+
+        _count++;
     }
 
-    bool isEmpty() const { return _count == 0; }
+    template <typename... Args>
+    [[clang::always_inline]] void emplaceAt(usize index, Args&&... args) { }
 
-    auto iter() {
-        return Iter(
-            [this, curr = head(), ver = _version] mutable -> Opt<Cursor<T>> {
-            if (ver != _version) {
-                panic("List::iter(): List modified during iteration");
+    [[clang::always_inline]] void append(T const& value) {
+        auto* n = wrap(value);
+
+        if (_head == NONE)
+            _head = _tail = n;
+        else {
+            n->_prev     = _tail;
+            _tail->_next = n;
+            _tail        = n;
+        }
+        n->_next = nullptr;
+
+        _count++;
+    }
+
+    [[clang::always_inline]] void remove(usize index) {
+        if (index >= size()) {
+            // Handle out-of-bounds index
+        }
+
+        Elem* curr = head();
+        for (usize i = 0; i < index; ++i) {
+            curr = next(curr);
+        }
+
+        if (curr->_prev != NONE)
+            curr->_prev->_next = curr->_next;
+        else
+            _head = curr->_next;
+
+        if (curr->_next != NONE)
+            curr->_next->_prev = curr->_prev;
+        else
+            _tail = curr->_prev;
+
+        delete curr;
+        _count--;
+    }
+
+    [[clang::always_inline]] void remove(T const& value) {
+        auto* curr = head();
+
+        while (curr != NONE) {
+            if (unwrap(curr) != value) {
+                curr = curr->_next;
+                continue;
             }
 
-            if (curr) {
-                auto* val = curr;
-                curr      = next(curr);
-                return Cursor(val);
-            }
+            if (curr->_prev != NONE)
+                curr->_prev->_next = curr->_next;
+            else
+                _head = curr->_next;
+
+            if (curr->_next != NONE)
+                curr->_next->_prev = curr->_prev;
+            else
+                _tail = curr->_prev;
+
+            delete curr;
+            _count--;
+            return;
+        }
+    }
+
+    [[clang::always_inline]] Opt<T&> at(usize index) {
+        if (index >= size()) {
             return NONE;
-        });
+        }
+
+        Elem* curr = head();
+        for (usize i = 0; i < index; ++i) {
+            curr = next(curr);
+        }
+        return unwrap(curr);
     }
-};
 
-template <typename T>
-struct List {
-    struct Node {
-        T           value;
-        Lnode<Node> lnode;
+    [[clang::always_inline]] void operator+=(T const& value) { }
+
+    [[clang::always_inline]] void operator-=(T const& value) { }
+
+    [[clang::always_inline]] T& operator[](usize index) {
+        if (index >= size()) {
+            panic("List::operator[]: index out of bounds.");
+        }
+
+        Elem* curr = head();
+        for (usize i = 0; i < index; ++i) {
+            curr = curr->_next;
+        }
+        return unwrap(curr);
+    }
+
+    [[clang::always_inline]] T const& operator[](usize index) const {
+        if (index >= size()) {
+            panic("List::operator[]: index out of bounds.");
+        }
+
+        Elem* curr = head();
+        for (usize i = 0; i < index; ++i) {
+            curr = curr->_next;
+        }
+        return unwrap(curr);
+    }
+
+    struct It {
+        List const& list;
+        Elem*       curr;
+
+        constexpr It(List const& lst) : list(lst), curr(lst.head()) { }
     };
-    List<Node> _list;
-
-    // Other member functions...
 };
-
-} // namespace Meta
-
-using Meta::List;
-using Meta::Lnode;

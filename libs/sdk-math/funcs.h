@@ -2,7 +2,6 @@
 
 #include <sdk-math/const.h>
 #include <sdk-meta/limits.h>
-#include <sdk-meta/panic.h>
 #include <sdk-meta/traits.h>
 #include <sdk-meta/types.h>
 

@@ -10,6 +10,33 @@
 #include <sdk-meta/types.h>
 
 namespace Meta {
+
+// template <typename T, typename R = typename T::R>
+// concept Ranges = requires(T& it) {
+//     typename T::R;
+//     typename T::V;
+//     Meta::Equatable<R, None>;
+
+//     { it.present() } -> Meta::Boolean;
+//     { it.next() } -> Meta::Boolean;
+//     { it.curr() } -> Meta::Same<R>;
+//     { *declval<R>() } -> Meta::Same<typename T::V>;
+// };
+
+template <typename T, typename R = typename T::R>
+concept Items = requires(T& it) {
+    typename T::R;
+    typename T::V;
+
+    { it.present() } -> Meta::Boolean;
+    { it.next() } -> Meta::Same<R>;
+    { it.curr() } -> Meta::Same<R>;
+    { *Meta::declval<R>() } -> Meta::Same<typename T::V>;
+};
+
+} // namespace Meta
+
+namespace Meta {
 template <typename Fn>
 struct Iter {
     Fn next;
@@ -350,7 +377,7 @@ struct Iter {
 
         auto n = [=, *this, index = usize { 0 }] mutable -> Opt<R> {
             if (auto item = next()) {
-                return f(index++, Index { false, index - 1 });
+                return f(index++, Index { index - 1, false });
             }
             return NONE;
         };
@@ -563,13 +590,7 @@ struct Iter {
 
     // MARK: - [First & Last]
 
-    constexpr auto first() -> Item {
-        auto item = next();
-        if (item) {
-            return *item;
-        }
-        return NONE;
-    }
+    constexpr auto first() -> Item { return next(); }
 
     constexpr auto first(auto f) -> Item {
         for (auto item = next(); item; item = next()) {
@@ -607,7 +628,7 @@ struct Iter {
         for (auto item = next(); item; item = next()) {
             last = *item;
         }
-        return last.unwrapOrElse(def);
+        return last.orElse(def);
     }
 
     // MARK: - [Grouping]
@@ -802,7 +823,7 @@ constexpr auto range(T start, T end) {
 // }
 
 template <Sliceable S>
-constexpr auto iter(S& slice) {
+constexpr auto foreach (S& slice) {
     return Iter([&slice, i = 0uz] mutable -> Opt<typename S::Inner&> {
         if (i >= slice.len()) {
             return NONE;
@@ -814,7 +835,7 @@ constexpr auto iter(S& slice) {
 
 } // namespace Meta
 
-using Meta::iter;
+using Meta::foreach;
 using Meta::Iter;
 using Meta::range;
 using Meta::repeat;

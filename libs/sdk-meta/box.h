@@ -1,6 +1,5 @@
 #pragma once
 
-#include <sdk-meta/panic.h>
 #include <sdk-meta/traits.h>
 #include <sdk-meta/types.h>
 #include <sdk-meta/utility.h>
@@ -11,13 +10,13 @@ struct Box {
 
     constexpr Box() = delete;
 
-    constexpr Box(_Move, T* ptr) : _ptr(ptr) { }
+    constexpr Box(Move, T* ptr) : _ptr(ptr) { }
 
     constexpr Box(T const& v) : _ptr(new T(v)) { }
 
     constexpr Box(T&& v) : _ptr(new T(Meta::forward<T>(v))) { }
 
-    template <Meta::Derive<T> U>
+    template <Meta::Extends<T> U>
     constexpr Box(Box<U>&& other) : _ptr(other._ptr) {
         other._ptr = nullptr;
     }
@@ -34,7 +33,7 @@ struct Box {
         return *this;
     }
 
-    template <Meta::Derive<T> U>
+    template <Meta::Extends<T> U>
     constexpr Box& operator=(Box<U>&& other) {
         if (this != (void*) &other) {
             if (_ptr) {
@@ -99,5 +98,5 @@ struct Box {
 
 template <typename T, typename... Args>
 constexpr static Box<T> makeBox(Args... args) {
-    return { Move, new T(::forward<Args>(args)...) };
+    return { MOVE, new T(::forward<Args>(args)...) };
 }

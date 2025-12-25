@@ -35,19 +35,21 @@ struct Dict {
     usize      _released;
 
     struct Subscript {
-        K const&      key;
-        Dict&         table;
-        Opt<V const*> value;
+        K const& key;
+        Dict&    table;
+        Opt<V&>  value;
 
-        V const& operator=(V const& val) {
+        V& operator=(V const& val) {
             if (value) {
-                *const_cast<V*>(*value) = val;
+                *value = val;
             } else {
                 table.put(key, val);
                 value = table.get(key);
             }
-            return *value.take();
+            return value.unwrap();
         }
+
+        operator Opt<V&>() { return value; }
     };
 
     Dict(usize cap = defaultCapacity)
@@ -153,41 +155,6 @@ struct Dict {
             i = _count;
             _count++;
             return i;
-        }
-    }
-
-    void put(K const& key, V&& value) {
-        i32 hashCode = ::hash(key) & 0x7FFF'FFFF;
-        u32 bucketId = hashCode % _buckets.len();
-
-        u32 coll = 0;
-        for (i32 i = _buckets[bucketId]; i >= 0; i = _entries[i]._next) {
-            if ((_entries[i]._hashCode == hashCode)
-                and (key == _entries[i]._key)) {
-                new (&_entries[i]._value) V(::forward<V>(value));
-                _version++;
-                return;
-            }
-            coll++;
-        }
-
-        auto index = next();
-        if (not index or index == -1) [[unlikely]] {
-            panic("Dict::putIfAbsent(): No available index for new entry");
-        }
-        bucketId = hashCode % _buckets.len();
-
-        new (&_entries[*index]) Entry {
-            ._hashCode = hashCode,
-            ._next     = _buckets[bucketId],
-            ._key      = ::move(key),
-            ._value    = ::forward<V>(value),
-        };
-        _buckets[bucketId] = *index;
-        _version++;
-
-        if (coll > collisionThreshold) {
-            resize();
         }
     }
 
@@ -307,7 +274,7 @@ struct Dict {
         _version++;
     }
 
-    Opt<V const*> get(K const& key) const {
+    Opt<V&> get(K const& key) const {
         auto elem = find(key);
 
         if (not elem) {

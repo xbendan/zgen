@@ -1,6 +1,5 @@
 #pragma once
 
-#include <sdk-meta/panic.h>
 #include <sdk-meta/str.h>
 #include <sdk-meta/types.h>
 

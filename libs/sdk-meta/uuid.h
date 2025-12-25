@@ -1,11 +1,10 @@
 #pragma once
 
 #include <sdk-meta/array.h>
-#include <sdk-meta/panic.h>
 #include <sdk-meta/types.h>
 
 union Uuid {
-    struct [[gnu::packed]] {
+    struct [[packed]] {
         u32 low;
         u16 mid;
         u16 hi;

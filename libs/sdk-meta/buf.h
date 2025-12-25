@@ -15,7 +15,7 @@ struct Buf {
 
     Buf(usize cap = 0) { ensure(cap); }
 
-    Buf(_Move, T* buf, usize len)
+    Buf(Move, T* buf, usize len)
         : _buf(reinterpret_cast<Manual<T>*>(buf)),
           _cap(len),
           _len(len) { }
@@ -162,7 +162,7 @@ struct Buf {
         _buf[index].ctor(move(value));
     }
 
-    void insert(_Copy, usize index, T const* first, usize count) {
+    void insert(Copy, usize index, T const* first, usize count) {
         ensure(_len + count);
 
         for (usize i = _len; i > index; i--) {
@@ -176,7 +176,7 @@ struct Buf {
         _len += count;
     }
 
-    void insert(_Move, usize index, T* first, usize count) {
+    void insert(Move, usize index, T* first, usize count) {
         ensure(_len + count);
 
         for (usize i = _len; i > index; i--) {
@@ -272,6 +272,10 @@ struct Buf {
 
     usize size() const { return _len * sizeof(T); }
 
+    T* begin() { return buf(); }
+
+    T* end() { return buf() + _len; }
+
     void leak() {
         _buf = nullptr;
         _cap = 0;
@@ -282,6 +286,8 @@ static_assert(sizeof(Buf<u8>) == 24);
 
 template <typename T, usize N>
 struct InlineBuf {
+    static_assert(N > 0, "InlineBuf<T, N>: N must be greater than 0");
+
     using Inner = T;
 
     Array<Manual<T>, N> _buf = {};
@@ -383,7 +389,7 @@ struct InlineBuf {
         _len++;
     }
 
-    void insert(_Copy, usize index, T* first, usize count) {
+    void insert(Copy, usize index, T* first, usize count) {
         if (_len + count > N) [[unlikely]]
             panic(
                 "InlineBuf<T, N>::insert(_Copy, usize, T*, usize): "
@@ -400,7 +406,7 @@ struct InlineBuf {
         _len += count;
     }
 
-    void insert(_Move, usize index, T* first, usize count) {
+    void insert(Move, usize index, T* first, usize count) {
         if (_len + count > N) [[unlikely]]
             panic(
                 "InlineBuf<T, N>::insert(_Move, usize, T*, usize): "

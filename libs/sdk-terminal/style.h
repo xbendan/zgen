@@ -12,7 +12,7 @@ namespace Sdk::Cli {
 using Sdk::Graph::iRgb;
 using Sdk::Text::TextDecoration;
 
-struct [[gnu::packed]] Style {
+struct [[packed]] Style {
     u8             _fg { 0x10 };
     u8             _bg { 0x10 };
     TextDecoration decos { TextDecoration::None };

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <sdk-meta/opt.h>
-#include <sdk-meta/panic.h>
 #include <sdk-meta/range.h>
 
 namespace Meta {

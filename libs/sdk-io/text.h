@@ -2,14 +2,12 @@
 
 #include <sdk-io/traits.h>
 #include <sdk-text/_defs.h>
-#include <sdk-text/builder.h>
 #include <sdk-text/rune.h>
 #include <sdk-text/str.h>
 
 namespace Sdk::Io {
 
 using Sdk::Text::_Str;
-using Sdk::Text::_StringBuilder;
 using Sdk::Text::Rune;
 using Sdk::Text::StaticEncoding;
 
@@ -18,14 +16,14 @@ struct TextWriter : Writer, Flusher {
 
     template <StaticEncoding E>
     Res<> writeStr(_Str<E> str) {
-        for (auto rune : iter(str))
+        for (auto rune : foreach (str))
             try$(writeRune(rune));
 
         return Ok();
     }
 
     Res<> writeStr(char const* cstr) {
-        return writeStr(_Str<Zgen::Core::Encoding>(cstr));
+        return writeStr(_Str<Realms::Core::Encoding>(cstr));
     }
 
     virtual Res<> writeRune(Rune rune) = 0;
@@ -33,7 +31,7 @@ struct TextWriter : Writer, Flusher {
     Res<> flush() override { return Ok(); }
 };
 
-template <StaticEncoding E = typename Zgen::Core::Encoding>
+template <StaticEncoding E = typename Realms::Core::Encoding>
 struct TextEncoderBase : TextWriter {
     using Writer::write;
 
@@ -46,7 +44,7 @@ struct TextEncoderBase : TextWriter {
     }
 };
 
-template <StaticEncoding E = typename Zgen::Core::Encoding>
+template <StaticEncoding E = typename Realms::Core::Encoding>
 struct TextEncoder : TextEncoderBase<E> {
     Io::Writer& _writer;
 
@@ -64,7 +62,7 @@ struct TextReader : Reader, Flusher {
     virtual Res<Rune> readRune() = 0;
 };
 
-template <StaticEncoding E = typename Zgen::Core::Encoding>
+template <StaticEncoding E = typename Realms::Core::Encoding>
 struct TextDecoderBase : TextReader {
     using Reader::read;
 };
@@ -84,30 +82,5 @@ struct Null : TextWriter, TextReader {
 
     Res<> flush() override { return Ok(); }
 };
-
-template <StaticEncoding E, usize N>
-struct _StringWriter : TextWriter, _StringBuilder<E, N> {
-
-    _StringWriter() : _StringBuilder<E, N>() { }
-
-    Res<> write(byte b) override { panic("can't write raw byte to a string"); }
-
-    Res<usize> write(Bytes) override {
-        panic("can't write raw bytes to a string");
-    }
-
-    Res<> writeRune(Rune rune) override {
-        _StringBuilder<E, N>::append(rune);
-        return Ok();
-    }
-
-    Res<> writeUnit(Slice<typename E::Unit> unit) {
-        _StringBuilder<E, N>::append(unit);
-        return Ok();
-    }
-};
-
-template <usize N = 64>
-using StringWriter = _StringWriter<Zgen::Core::Encoding, N>;
 
 } // namespace Sdk::Io

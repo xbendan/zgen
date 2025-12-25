@@ -71,7 +71,7 @@ static constexpr bool isBigEndian() {
 }
 
 template <typename T>
-struct [[gnu::packed]] Be {
+struct [[packed]] Be {
     T _value;
 
     [[gnu::always_inline]] constexpr Be() = default;
@@ -88,7 +88,7 @@ struct [[gnu::packed]] Be {
 };
 
 template <typename T>
-struct [[gnu::packed]] Le {
+struct [[packed]] Le {
     T _value;
 
     [[gnu::always_inline]] constexpr Le() = default;

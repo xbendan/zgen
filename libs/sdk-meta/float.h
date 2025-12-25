@@ -13,7 +13,7 @@ union FloatBits<f32> {
     static constexpr int      exponentBits = 8;
     static constexpr unsigned exponentMax  = (1 << exponentBits) - 1;
 
-    struct [[gnu::packed]] {
+    struct [[packed]] {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
         u32 sign: 1;
         u32 exponent: 8;
@@ -39,7 +39,7 @@ union FloatBits<f64> {
     static constexpr int      exponentBits = 11;
     static constexpr unsigned exponentMax  = (1 << exponentBits) - 1;
 
-    struct [[gnu::packed]] {
+    struct [[packed]] {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
         u64 sign: 1;
         u64 exponent: 11;
@@ -67,7 +67,7 @@ union FloatBits<f128> {
     static constexpr int      exponentBits = 15;
     static constexpr unsigned exponentMax  = (1 << exponentBits) - 1;
 
-    struct [[gnu::packed]] {
+    struct [[packed]] {
 #    if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
         u128 sign: 1;
         u128 exponent: 15;

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <sdk-meta/callable.h>
-#include <sdk-meta/panic.h>
 #include <sdk-meta/traits.h>
 #include <sdk-meta/types.h>
 #include <sdk-meta/utility.h>
@@ -54,17 +53,19 @@ struct Opt<T> {
             new (&_value) T(other.unwrap());
     }
 
-    // template <typename U>
-    //     requires(Meta::MoveConstructible<T, U>)
-    // [[gnu::always_inline]] constexpr Opt(Opt<U>&& other) : _present(other._present) {
-    //     if (_present)
-    //         new (&_value) T(Meta::forward<U>(other.unwrap()));
-    // }
-
     ~Opt() { clear(); }
 
     [[gnu::always_inline]] constexpr Opt& operator=(None) {
         clear();
+        return *this;
+    }
+
+    template <typename U = T>
+        requires(not Same<RemoveCvRef<U>, Opt<T>> and Convertible<U, Inner>)
+    [[gnu::always_inline]] constexpr Opt& operator=(U* value) {
+        clear();
+        _present = true;
+        _value   = value;
         return *this;
     }
 
@@ -77,16 +78,6 @@ struct Opt<T> {
         _value   = &value;
         return *this;
     }
-
-    // template <typename U = T>
-    //     requires(not Meta::Same<Meta::RemoveCvRef<U>, Opt<T>>
-    //              and Meta::MoveConstructible<T, U>)
-    // [[gnu::always_inline]] constexpr Opt& operator=(U&& value) {
-    //     clear();
-    //     _present = true;
-    //     new (&_value) T(::forward<U>(value));
-    //     return *this;
-    // }
 
     [[gnu::always_inline]] constexpr Opt& operator=(Opt const& other) {
         if (other._present) {
@@ -181,15 +172,26 @@ struct Opt<T> {
         }
     }
 
-    [[gnu::always_inline]] constexpr T& unwrap(char const* msg
-                                               = "Opt::unwrap(): on None") {
+    [[gnu::always_inline]] constexpr T& emplaceIfAbsent(
+        Callable<> auto&& func) {
+        if (not _present) {
+            _present = true;
+            _value   = func();
+        }
+        return *_value;
+    }
+
+#define emplaceIfAbsent$(expr) emplaceIfAbsent([&]() { return expr; })
+
+    [[gnu::always_inline]] constexpr T unwrap(char const* msg
+                                              = "Opt::unwrap(): on None") {
         if (not _present) [[unlikely]] {
             panic(msg);
         }
         return *_value;
     }
 
-    [[gnu::always_inline]] constexpr T const& unwrap(
+    [[gnu::always_inline]] constexpr T const unwrap(
         char const* msg = "Opt::unwrap(): unwrap on None") const {
         if (not _present) [[unlikely]] {
             panic(msg);
@@ -197,15 +199,14 @@ struct Opt<T> {
         return *_value;
     }
 
-    [[gnu::always_inline]] constexpr T const& unwrapOrElse(T const& def) const {
+    [[gnu::always_inline]] constexpr T const unwrapOrElse(T const def) const {
         if (_present) {
             return *_value;
         }
         return def;
     }
 
-    [[gnu::always_inline]] constexpr T unwrapOrElse(
-        Callable<T> auto&& func) const {
+    [[gnu::always_inline]] constexpr T orElse(Callable<> auto&& func) const {
         if (_present) {
             return *_value;
         }
@@ -254,6 +255,13 @@ struct Opt<T> {
             return false;
         }
         return _value == other;
+    }
+
+    [[gnu::always_inline]] constexpr Opt<Meta::RemoveCvRef<T>> deref() {
+        if (not _present) [[unlikely]] {
+            panic("Opt::deref(): on None");
+        }
+        return *_value;
     }
 
     static constexpr None none() { return None {}; }
@@ -455,13 +463,14 @@ struct Opt {
         return def;
     }
 
-    [[gnu::always_inline]] constexpr T unwrapOrElse(
-        Callable<T> auto&& func) const {
+    [[gnu::always_inline]] constexpr T orElse(Callable<> auto&& func) const {
         if (_present) {
             return _value;
         }
         return func();
     }
+
+#define orElse$(expr) orElse([&]() { return expr; })
 
     [[gnu::always_inline]] constexpr T unwrapOrDefault(T other) const {
         if (_present) {
