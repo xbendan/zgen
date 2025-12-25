@@ -20,7 +20,7 @@ template <Fis>
 struct Command;
 
 template <>
-struct [[gnu::packed]] Command<Fis::HostToDevice> {
+struct [[packed]] Command<Fis::HostToDevice> {
     u8 id { Fis::HostToDevice };
 
     u8 pm: 4;
@@ -49,7 +49,7 @@ struct [[gnu::packed]] Command<Fis::HostToDevice> {
 static_assert(sizeof(Command<Fis::HostToDevice>) == 20);
 
 template <>
-struct [[gnu::packed]] Command<Fis::DeviceToHost> {
+struct [[packed]] Command<Fis::DeviceToHost> {
     u8 id { Fis::DeviceToHost };
 
     u8 pm: 4;
@@ -78,7 +78,7 @@ struct [[gnu::packed]] Command<Fis::DeviceToHost> {
 static_assert(sizeof(Command<Fis::DeviceToHost>) == 0x14);
 
 template <>
-struct [[gnu::packed]] Command<Fis::PioSetup> {
+struct [[packed]] Command<Fis::PioSetup> {
     u8 id { Fis::PioSetup };
 
     u8 pm: 4;
@@ -110,7 +110,7 @@ struct [[gnu::packed]] Command<Fis::PioSetup> {
 static_assert(sizeof(Command<Fis::PioSetup>) == 0x14);
 
 template <>
-struct [[gnu::packed]] Command<Fis::DmaSetup> {
+struct [[packed]] Command<Fis::DmaSetup> {
     u8 id { Fis::DmaSetup };
 
     u8 pm: 4;
@@ -132,7 +132,7 @@ struct [[gnu::packed]] Command<Fis::DmaSetup> {
 static_assert(sizeof(Command<Fis::DmaSetup>) == 28);
 
 template <>
-struct [[gnu::packed]] Command<Fis::Data> {
+struct [[packed]] Command<Fis::Data> {
     u8 id { Fis::Data };
     u8 pm;
 
@@ -142,7 +142,7 @@ struct [[gnu::packed]] Command<Fis::Data> {
 };
 
 template <>
-struct [[gnu::packed]] Command<Fis::DevBits> {
+struct [[packed]] Command<Fis::DevBits> {
     u8  id { Fis::DevBits };
     u8  pm;
     u8  status;
@@ -152,7 +152,7 @@ struct [[gnu::packed]] Command<Fis::DevBits> {
 
 namespace Hba {
 
-struct [[gnu::packed]] Capability {
+struct [[packed]] Capability {
     u32 np: 5;
     u32 sxs: 1;
     u32 ems: 1;
@@ -181,13 +181,13 @@ struct [[gnu::packed]] Capability {
     u32 bits64: 1;
 };
 
-struct [[gnu::packed]] CapabilityExt {
+struct [[packed]] CapabilityExt {
     u32 bioshc: 1;
     u32 nvmhci: 1;
     u32 asmt: 1;
 };
 
-struct [[gnu::packed]] _PortRegs {
+struct [[packed]] _PortRegs {
     u32           clb;
     u32           clbu;
     u32           fb;
@@ -210,7 +210,7 @@ struct [[gnu::packed]] _PortRegs {
 };
 using PortRegs = _PortRegs volatile;
 
-struct [[gnu::packed]] _MemoryRegs {
+struct [[packed]] _MemoryRegs {
     Capability          hostCaps;
     u32                 ghc;
     u32                 is;
@@ -240,7 +240,7 @@ struct Received {
     u8                         __reserved__3[0x100 - 0xA0];
 };
 
-struct [[gnu::packed]] _CommandHeader {
+struct [[packed]] _CommandHeader {
     u8 cfl: 5;
     u8 atapi: 1;
     u8 write: 1;
@@ -259,7 +259,7 @@ struct [[gnu::packed]] _CommandHeader {
 };
 using CommandHeader = _CommandHeader volatile;
 
-struct [[gnu::packed]] PrdtEntry {
+struct [[packed]] PrdtEntry {
     u32 dba;
     u32 dbau;
     u32 __reserved__0;
@@ -268,7 +268,7 @@ struct [[gnu::packed]] PrdtEntry {
     u32 i: 1;
 };
 
-struct [[gnu::packed]] _CommandTable {
+struct [[packed]] _CommandTable {
     Array<u8, 0x40> cfis;
     Array<u8, 0x10> atapiCmd;
     u8              __reserved__0[0x30];
