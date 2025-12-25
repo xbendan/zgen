@@ -1,18 +1,22 @@
 #pragma once
 
 #include <pci/spec.h>
-#include <zgen/io/dev.h>
+#include <realms/io/dev.h>
 
 namespace Pci {
 
-struct Dev : public Zgen::Core::Io::Dev, public Id {
+struct Dev : public Id, public Realms::Core::Io::Dev {
     Dev(u8 bus, u8 slot, u8 func);
     Dev(u8 bus, u8 slot, u8 func, u16 vendorId, u16 deviceId);
     Dev(Id const& id);
-    Dev(Id const& id, Str name, Zgen::Core::Io::Dev::Type type);
+    Dev(Id const& id, String name, Realms::Core::Io::Dev::Type type);
 
     Dev(Dev const&)            = delete;
     Dev& operator=(Dev const&) = delete;
+
+    bool operator==(Id const& other) const {
+        return bus == other.bus and slot == other.slot and func == other.func;
+    }
 
     [[gnu::always_inline]] bool barIsMmio(u8 i) {
         return in32(Regs::Bar0 + i * 4).unwrapOr(0) & 0x1;

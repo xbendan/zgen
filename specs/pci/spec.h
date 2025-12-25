@@ -1,8 +1,8 @@
 #pragma once
 
+#include <realms/hal/io.h>
 #include <sdk-meta/res.h>
 #include <sdk-meta/types.h>
-#include <zgen/hal/io.h>
 
 namespace Pci {
 
@@ -196,13 +196,15 @@ struct Subclass<Class::Bridge> {
     };
 };
 
-using ConfigAddress = Zgen::Hal::Reg<u32, 0xcf8>;
-using ConfigData    = Zgen::Hal::Reg<u32, 0xcfc>;
+using ConfigAddress = Realms::Hal::Reg<u32, 0xcf8>;
+using ConfigData    = Realms::Hal::Reg<u32, 0xcfc>;
 
-struct Id : public Zgen::Hal::Io {
+struct Id : public Realms::Hal::Io {
     u8  bus, slot, func;
     u16 _vendorId, _deviceId;
     u8  _class, _subclass, _progIf;
+
+    Id(u8 bus, u8 slot, u8 func) : bus(bus), slot(slot), func(func) { }
 
     Res<usize> in(usize offset, usize size) override;
 
