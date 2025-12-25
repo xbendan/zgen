@@ -1,19 +1,19 @@
-#include <acpi/device.h>
+#include <acpi/bus.h>
+#include <realms/hal/pmm.h>
+#include <realms/hal/vmm.h>
+#include <realms/mm/mem.h>
 #include <sdk-logs/logger.h>
 #include <sdk-meta/iter.h>
-#include <zgen/hal/pmm.h>
-#include <zgen/hal/vmm.h>
-#include <zgen/mm/mem.h>
 
 namespace Acpi {
 
 static Str sign = "RSD PTR ";
 
-Res<> ControlDevice::onInit() {
+Res<> BusDevice::onInit() {
     auto addr
-        = range<uflat>(0x0, 0x7c00, 0x10)
-              .concat(range<uflat>(0x8'0000, 0xa'0000, 0x10))
-              .concat(range<uflat>(0xe'0000, 0x10'0000, 0x10))
+        = range<u64>(0x0, 0x7c00, 0x10)
+              .concat(range<u64>(0x8'0000, 0xa'0000, 0x10))
+              .concat(range<u64>(0xe'0000, 0x10'0000, 0x10))
               .first$(strncmp((char const*) it, sign.buf(), sign.len()) == 0)
               .mapTo<uflat>();
     if (not addr) {
@@ -28,7 +28,7 @@ Res<> ControlDevice::onInit() {
     //  ->  0:         = version 1.0
     //  ->  otherwise: = unknown version
     //
-    switch (Rsdp* p = addr.take(); revision = p->revision) {
+    switch (Rsdp* p = addr.take(); _revision = p->revision) {
         case 0: {
             logInfo(
                 "acpi::onInit: found acpi 1.0 \n"
@@ -36,8 +36,8 @@ Res<> ControlDevice::onInit() {
                 "   - Rsdt at {:#x}\n"
                 "   - Oem ID: {}",
                 addr,
-                Str(p->oemId.buf(), 6));
-            rsdt = Zgen::Core::mmapVirtIo(p->rsdt).take();
+                Str(p->oemId));
+            _rsdt = Realms::Core::mmapVirtIo(p->rsdt).take();
             break;
         }
         case 2: {
@@ -50,9 +50,9 @@ Res<> ControlDevice::onInit() {
                 addr,
                 (u64) x->xsdt,
                 Str(x->oemId.buf(), 6));
-            Xsdp* xsdp = Zgen::Core::mmapVirtIo(uflat(p)).take();
-            rsdt       = Zgen::Core::mmapVirtIo(xsdp->rsdt).take();
-            xsdt       = Zgen::Core::mmapVirtIo(xsdp->xsdt).take();
+            Xsdp* xsdp = Realms::Core::mmapVirtIo(uflat(p)).take();
+            _rsdt      = Realms::Core::mmapVirtIo(xsdp->rsdt).take();
+            _xsdt      = Realms::Core::mmapVirtIo(xsdp->xsdt).take();
             break;
         }
         default: {
@@ -61,49 +61,59 @@ Res<> ControlDevice::onInit() {
             return Error::unsupported("acpi::onInit: unknown acpi revision");
         }
     }
-    status = Status::Initialized;
 
     return Ok();
 }
 
-Res<> ControlDevice::onStart() {
-    return Error::notImplemented("acpi::onStart: not implemented");
+Res<String> BusDevice::path(Rc<Io::Dev> dev) {
+    return Error::notImplemented();
 }
 
-Res<> ControlDevice::onStop() {
-    return Error::notSupported(
-        "acpi::onStop: acpi service must keep running during system lifetime, "
-        "abort.");
+Res<Slice<Rc<Io::Dev>>> BusDevice::probe() {
+    // TODO: implement ACPI device probing
+    return Error::notImplemented();
 }
 
-Res<_Desc*> ControlDevice::lookupTable(Str name) {
-    if (auto table = tables.iter().first$(it._key == name); table) {
-        return Ok(table->_value);
-    }
+Res<Slice<Rc<Io::Dev>>> BusDevice::devices() {
+    return Error::notImplemented();
+}
+
+Res<> BusDevice::remove(Rc<Dev> dev) {
+    return Error::notImplemented();
+}
+
+Opt<Desc&> BusDevice::lookupTable(Str name) {
+    // if (auto table = tables.iter().first$(it._key == name); table) {
+    //     return table->_value;
+    // }
 
     if (name == "DSDT") {
-        auto* fadt = try$(lookupTable("FACP"));
-        uflat dsdt = try$(Zgen::Core::mmapVirtIo(((Acpi::Fadt*) fadt)->dsdt));
-        return Ok(dsdt);
+        auto fadt = lookupTable("FACP");
+        if (not fadt)
+            return NONE;
+
+        return Realms::Core::mmapVirtIo((fadt->as<Acpi::Fadt>()->dsdt))
+            .take()
+            .as<Acpi::Desc>();
     }
 
-    usize entries = revision
-                      ? (xsdt->length - sizeof(Acpi::_Desc)) / sizeof(u64)
-                      : (rsdt->length - sizeof(Acpi::_Desc)) / sizeof(u32);
+    usize entries = _revision
+                      ? (_xsdt->length - sizeof(Acpi::Desc)) / sizeof(u64)
+                      : (_rsdt->length - sizeof(Acpi::Desc)) / sizeof(u32);
     for (int i = 0; i < entries; i++) {
-        u64 ent = revision ? xsdt->tables[i] : rsdt->tables[i];
+        u64 ent = _revision ? _xsdt->tables[i] : _rsdt->tables[i];
 
-        auto desc = (Acpi::_Desc*) try$(Zgen::Core::mmapVirtIo(ent));
+        auto* desc = (Acpi::Desc*) try$(Realms::Core::mmapVirtIo(ent));
         if (cstrEq(desc->sign.buf(), name.buf())) {
             logInfo("acpi::lookupTable: found table {} at {:#x}", name, ent);
-            tables[name] = desc;
+            // tables[name] = desc;
 
-            return Ok(desc);
+            return desc;
         }
     }
 
     logWarn("acpi::lookupTable: table {} not found", name);
-    return Error::notFound("acpi::lookupTable: table not found");
+    return NONE;
 }
 
 } // namespace Acpi
