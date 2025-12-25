@@ -1,4 +1,4 @@
-set_project("zgen-cpp.xmake")
+set_project("realms-cpp.xmake")
 set_version("1.0.0")
 set_languages("cxx23")
 add_rules("mode.debug", "mode.release")
@@ -43,7 +43,7 @@ target("kernel-x86_64")
     set_kind("binary")
     set_targetdir("$(builddir)", { bindir = "bin", libdir = "lib" })
     set_objectdir("$(builddir)/objs")
-    set_filename("zgen.kernel-$(mode)-$(arch).elf")
+    set_filename("realms.kernel-$(mode)-$(arch).elf")
     add_rules("x86_64-assembly")
 
     add_cxxflags(
@@ -77,7 +77,7 @@ target("kernel-x86_64")
 
     add_files("src/arch/x86_64/*.cpp")
     add_files("src/arch/x86_64/*.s")
-    add_files("src/zgen/**.cpp")
+    add_files("src/realms/**.cpp")
     add_files("src/*.cpp")
     add_files("specs/**.cpp")
 

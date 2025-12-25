@@ -16,11 +16,8 @@
                 "${workspaceFolder}/src/*",
                 "${workspaceFolder}/specs/*"
             ],
-            "defines": [
-                "USING_AK_GLOBALLY"
-            ],
-            "compilerPath": "x86_64-elf-g++",
-            "intelliSenseMode": "gcc-x64",
+            "compilerPath": "clang++",
+            "intelliSenseMode": "clang-x64",
             "cppStandard": "c++23",
             "cStandard": "c23"
         },
