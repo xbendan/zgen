@@ -1,10 +1,10 @@
 #include <arch/x86_64/cpu.h>
 #include <arch/x86_64/vmm.h>
+#include <realms/mm/mem.h>
 #include <sdk-meta/literals.h>
 #include <sdk-meta/opt.h>
-#include <zgen/mm/mem.h>
 
-namespace Zgen::Hal::x86_64 {
+namespace Realms::Hal::x86_64 {
 
 Opt<x86_64::Vmm> _vmm = NONE;
 
@@ -135,15 +135,17 @@ Res<> createKernelVmm() {
 
     // map kernel physical memory region
     try$(_kpml4.map(DIRECT_IO_REGION.start(),
-                    &_kPhysPdpt - CORE_REGION.start()));
+                    (u64) &_kPhysPdpt - CORE_REGION.start()));
     try$(_kPhysPdpt.mapRange({ KERNEL_REGION.start(), 512_GiB },
                              { 0x0, 512_GiB }));
 
     // map kernel image region
-    try$(_kpml4.map(CORE_REGION.start(), &_kpdpt - CORE_REGION.start()));
-    try$(_kpml4.map(USER_REGION.start(), &_kpdptLo - CORE_REGION.start()));
-    try$(_kpdpt.map(CORE_REGION.start(), &_kImagePde - CORE_REGION.start()));
-    try$(_kpdptLo.map(USER_REGION.start(), &_kImagePde - CORE_REGION.start()));
+    try$(_kpml4.map(CORE_REGION.start(), u64(&_kpdpt) - CORE_REGION.start()));
+    try$(_kpml4.map(USER_REGION.start(), u64(&_kpdptLo) - CORE_REGION.start()));
+    try$(_kpdpt.map(CORE_REGION.start(),
+                    u64(&_kImagePde) - CORE_REGION.start()));
+    try$(_kpdptLo.map(USER_REGION.start(),
+                      u64(&_kImagePde) - CORE_REGION.start()));
     try$(_kImagePde.mapRange({ 0xffff'ffff'8000'0000, 512_MiB },
                              { 0x0, 512_MiB }));
 
@@ -152,9 +154,9 @@ Res<> createKernelVmm() {
     return Ok();
 }
 
-} // namespace Zgen::Hal::x86_64
+} // namespace Realms::Hal::x86_64
 
-namespace Zgen::Core {
+namespace Realms::Core {
 
 using Hal::x86_64::_vmm;
 
@@ -169,4 +171,4 @@ Hal::Vmm& globalVmm() {
     return *_vmm;
 }
 
-} // namespace Zgen::Core
+} // namespace Realms::Core

@@ -3,7 +3,7 @@
 #include <sdk-meta/array.h>
 #include <sdk-meta/types.h>
 
-namespace Zgen::Hal::x86_64 {
+namespace Realms::Hal::x86_64 {
 
 extern "C" void _idtLoad(void const* p);
 
@@ -18,7 +18,7 @@ struct Idt {
         USER = 0b0110'0000,
     };
 
-    struct [[gnu::packed]] Entry {
+    struct [[packed]] Entry {
         u16 baseLow;
         u16 sel;
         u8  ist: 3;
@@ -43,7 +43,7 @@ struct Idt {
 
     Array<Entry, LEN> entries {};
 
-    struct [[gnu::packed]] Pack {
+    struct [[packed]] Pack {
         u16 limit;
         u64 base;
 
@@ -55,4 +55,4 @@ struct Idt {
     };
 };
 
-} // namespace Zgen::Hal::x86_64
+} // namespace Realms::Hal::x86_64

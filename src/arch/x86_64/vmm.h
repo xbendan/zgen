@@ -1,5 +1,6 @@
 #pragma once
 
+#include <realms/hal/vmm.h>
 #include <sdk-logs/logger.h>
 #include <sdk-meta/bits.h>
 #include <sdk-meta/index.h>
@@ -9,11 +10,10 @@
 #include <sdk-meta/slice.h>
 #include <sdk-meta/str.h>
 #include <sdk-meta/types.h>
-#include <zgen/hal/vmm.h>
 
-namespace Zgen::Hal::x86_64 {
+namespace Realms::Hal::x86_64 {
 
-struct [[gnu::packed]] Entry {
+struct [[packed]] Entry {
     enum : u64 {
         PRESENT       = (1 << 0),
         READWRITE     = (1 << 1),
@@ -75,7 +75,7 @@ struct [[gnu::packed]] Entry {
 static_assert(sizeof(Entry) == 8);
 
 template <usize L>
-struct [[gnu::packed]] alignat(Hal::PAGE_SIZE) Pml {
+struct [[packed]] alignat(Hal::PAGE_SIZE) Pml {
     static constexpr usize Level = L;
     static constexpr usize Len   = 512;
 
@@ -188,4 +188,4 @@ struct Vmm : Hal::Vmm {
 
 struct UserVmm : public Hal::Vmm { };
 
-} // namespace Zgen::Hal::x86_64
+} // namespace Realms::Hal::x86_64

@@ -5,7 +5,7 @@
 #include <arch/x86_64/regs.h>
 #include <sdk-meta/traits.h>
 
-namespace Zgen::Hal::x86_64 {
+namespace Realms::Hal::x86_64 {
 
 struct [[gnu::aligned(0x10)]] CpuLocal : Meta::Pinned {
     CpuLocal* self;
@@ -35,4 +35,4 @@ struct [[gnu::aligned(0x10)]] CpuLocal : Meta::Pinned {
     }
 }
 
-} // namespace Zgen::Hal::x86_64
+} // namespace Realms::Hal::x86_64

@@ -1,8 +1,7 @@
 #include <multiboot2.h>
-#include <sdk-meta/panic.h>
+#include <realms/init/boot.h>
+#include <realms/init/prekernel.h>
 #include <sdk-meta/types.h>
-#include <zgen/init/boot.h>
-#include <zgen/init/prekernel.h>
 
 namespace multiboot2 {
 
@@ -11,7 +10,7 @@ Res<> parse(Info* info) {
         return Error::invalidData("multiboot2 info too small");
     }
 
-    auto* prekernel  = &Zgen::Core::prekernel;
+    auto* prekernel  = &Realms::Core::prekernel;
     prekernel->magic = 0x36d7'6289;
 
     auto* resp = reinterpret_cast<Response*>(info->responses);
@@ -55,12 +54,12 @@ Res<> parse(Info* info) {
 
                         default: type = 1; break;
                     }
-                    prekernel->memmap.pushBack((Zgen::Core::PrekernelInfo::_MemmapEntry) {
+                    prekernel->memmap.pushBack((Realms::Core::PrekernelInfo::_MemmapEntry) {
                         .range = {
                             entry->addr,
                             entry->len,
                         },
-                        .type  = (decltype(Zgen::Core::PrekernelInfo::_MemmapEntry::type)) type,
+                        .type  = (decltype(Realms::Core::PrekernelInfo::_MemmapEntry::type)) type,
                     });
                     entry = (MemoryMap::Entry*) ((u8*) entry + mmap->entrySize);
                 }
@@ -91,7 +90,7 @@ extern "C" [[noreturn]] void kinit_multiboot2(multiboot2::Info* info) {
         panic("Failed to resolve boot config");
     }
 
-    if (not Zgen::Core::main(0, &Zgen::Core::prekernel)) {
+    if (not Realms::Core::main(0, &Realms::Core::prekernel)) {
         // BSOD
 
         panic("System exited unexpectedly");

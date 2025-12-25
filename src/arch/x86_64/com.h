@@ -12,11 +12,11 @@
 
 #pragma once
 
+#include <realms/hal/io.h>
 #include <sdk-io/text.h>
 #include <sdk-io/traits.h>
-#include <zgen/hal/io.h>
 
-namespace Zgen::Hal::x86_64 {
+namespace Realms::Hal::x86_64 {
 
 using Sdk::Io::TextEncoderBase;
 
@@ -158,7 +158,7 @@ struct Com : public TextEncoderBase<> {
     }
 
     Res<usize> write(Bytes bytes) override {
-        for (auto b : iter(bytes)) {
+        for (auto b : foreach (bytes)) {
             try$(putByte(b));
         }
 
@@ -182,4 +182,4 @@ static constexpr Com com4() {
     return { PortIo({ 0x2e8, 8 }) };
 }
 
-} // namespace Zgen::Hal::x86_64
+} // namespace Realms::Hal::x86_64

@@ -1,11 +1,11 @@
 #pragma once
 
+#include <realms/hal/io.h>
 #include <sdk-meta/types.h>
-#include <zgen/hal/io.h>
 
-namespace Zgen::Hal::x86_64 {
+namespace Realms::Hal::x86_64 {
 
-struct [[gnu::packed]] Regs {
+struct [[packed]] Regs {
     u64 r15, r14, r13, r12, r11, r10, r9, r8;
     u64 rbp, rdi, rsi, rdx, rcx, rbx, rax;
     u64 err;
@@ -63,4 +63,4 @@ static inline void wrmsr(Msr msr, u64 val) {
     asm volatile("wrmsr" : : "a"(low), "d"(high), "c"((u32) msr));
 }
 
-} // namespace Zgen::Hal::x86_64
+} // namespace Realms::Hal::x86_64

@@ -1,6 +1,6 @@
-#include <zgen/hal/io.h>
+#include <realms/hal/io.h>
 
-namespace Zgen::Hal::Pmio {
+namespace Realms::Hal::Pmio {
 
 Res<u8> in8(usize port) {
     u8 ret;
@@ -48,4 +48,4 @@ Res<> out64(usize port, u64 val) {
     return Ok();
 }
 
-} // namespace Zgen::Hal::Pmio
+} // namespace Realms::Hal::Pmio

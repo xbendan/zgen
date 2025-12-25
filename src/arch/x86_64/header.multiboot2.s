@@ -205,6 +205,7 @@ multiboot2_tags:
     dd 0
 
 [Section .data]
+[Global GdtPack64]
 GdtPack64:
     dw _Gdt64.Pack32 - _Gdt64 - 1
     dq _Gdt64 + kernel_vma

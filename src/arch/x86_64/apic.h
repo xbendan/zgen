@@ -2,14 +2,13 @@
 
 #include <acpi/tables.h>
 #include <arch/x86_64/regs.h>
+#include <realms/hal/io.h>
+#include <realms/io/dev.h>
+#include <sdk-meta/opt.h>
 #include <sdk-meta/ptr.h>
 #include <sdk-meta/vec.h>
-#include <zgen/hal/event.h>
-#include <zgen/hal/io.h>
-#include <zgen/hal/smp.h>
-#include <zgen/io/dev.h>
 
-namespace Zgen::Hal::x86_64::Apic {
+namespace Realms::Hal::x86_64::Apic {
 
 using ApicId              = Hal::Reg<u32, 0x20>;
 using ApicVersion         = Hal::Reg<u32, 0x30>;
@@ -60,45 +59,16 @@ enum struct Dest {
     Others = (3 << 18)
 };
 
-using Zgen::Core::Io::Dev;
+using Realms::Core::Io::Dev;
 
-struct Local;
-
-struct GenericDevice : public Dev, public Hal::Events, public Hal::Io {
-    Vec<Nonnull<Local>>   _devices;
-    Vec<Acpi::Madt::Iso*> _isos;
-
-    struct {
-        uflat         base, vbase;
-        u32           intr;
-        u32 volatile* sel;
-        u32 volatile* win;
-    } _io;
-    _Msr _msr;
-
-    Res<usize> in(usize offset, usize size) override;
-
-    Res<> out(usize offset, usize size, usize val) override;
-
-    Res<u32> in32(usize offset);
-
-    Res<> out32(usize offset, u32 value);
-
-    Res<u64> in64(usize offset);
-
-    Res<> out64(usize offset, u64 value);
-
-    Opt<uflat> base();
-
-    void base(uflat addr);
+struct CoreDevice : public Dev {
+    CoreDevice() : Dev("x86_64-apic-core-device"s, "x86_64/apic/") { }
 };
 
-struct Local : public Dev, public Hal::Io {
+struct Local : public Hal::Io {
     u8    _processorId;
     u8    _apicId;
     uflat _base, _vbase;
-
-    Nonnull<GenericDevice> _device;
 
     Res<> init();
 
@@ -109,39 +79,29 @@ struct Local : public Dev, public Hal::Io {
     Res<> send(u32 vec);
 
     Res<> send(Dest dest, Message message, u8 vec);
+
+    u8 id() const { return _apicId; }
 };
+
+Res<u32> in32(usize offset);
+
+Res<> out32(usize offset, u32 value);
+
+Res<u64> in64(usize offset);
+
+Res<> out64(usize offset, u64 value);
+
+Slice<Local> units();
 
 struct TimerDevice : public Dev {
     Local& _local;
     u32    _busSpeed, _irqSrc;
 
-    TimerDevice(Local& local) : _local(local), _busSpeed(0), _irqSrc(0) { }
+    TimerDevice(Local& local)
+        : Dev("x86_64-apic-timer-device"s, "acpi/x86_64-apic-timer-device"s),
+          _local(local),
+          _busSpeed(0),
+          _irqSrc(0) { }
 };
 
-struct Intr : public Hal::Events {
-    Local& _cpuLocal;
-
-    Intr(Local& cpuLocal) : _cpuLocal(cpuLocal) { }
-
-    Res<> fin() override;
-
-    Res<> pause() override;
-
-    Res<> unpause() override;
-};
-
-struct Smp : public Hal::Smp {
-    Vec<Nonnull<Local>>& _cpuLocals;
-
-    Smp(GenericDevice& device) : _cpuLocals(device._devices) { }
-
-    Res<usize> count() override { return Ok(_cpuLocals.len()); }
-
-    Res<> init() override;
-
-    Res<> pause(usize id) override;
-
-    Res<> boot(usize id, void* stack, void (*entry)()) override;
-};
-
-} // namespace Zgen::Hal::x86_64::Apic
+} // namespace Realms::Hal::x86_64::Apic

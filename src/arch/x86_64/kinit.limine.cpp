@@ -1,11 +1,10 @@
 #include <limine.h>
+#include <realms/hal/vmm.h>
+#include <realms/init/boot.h>
+#include <realms/init/prekernel.h>
 #include <sdk-meta/error.h>
-#include <sdk-meta/panic.h>
 #include <sdk-meta/res.h>
 #include <sdk-meta/types.h>
-#include <zgen/hal/vmm.h>
-#include <zgen/init/boot.h>
-#include <zgen/init/prekernel.h>
 
 extern "C" u64 __kernel_start;
 extern "C" u64 __kernel_end;
@@ -14,7 +13,7 @@ extern "C" [[noreturn]] void kinit_limine(void) {
     if (not limine::parse()) {
         panic("Failed to resolve boot config");
     }
-    if (not Zgen::Core::main(0, &Zgen::Core::prekernel)) {
+    if (not Realms::Core::main(0, &Realms::Core::prekernel)) {
         // BSOD
 
         panic("System exited unexpectedly");
@@ -39,14 +38,14 @@ limine_request limine_hhdm_request               hhdm         = { .id = LIMINE_H
 limine_request limine_executable_address_request address      = { .id = LIMINE_EXECUTABLE_ADDRESS_REQUEST, .revision = 0, .response = nullptr };
 
 Res<> parse() {
-    auto* info = &Zgen::Core::prekernel;
+    auto* info = &Realms::Core::prekernel;
 
     if (not info) {
         return Error::notFound("Failed to get prekernel info");
     }
 
     usize kernelSize = (uflat) &__kernel_end - (uflat) &__kernel_start;
-    memcpy((void*) (Zgen::Hal::DIRECT_IO_REGION.start() + 0x100000),
+    memcpy((void*) (Realms::Hal::DIRECT_IO_REGION.start() + 0x100000),
            (void*) address.response->virtual_base,
            kernelSize);
 
@@ -75,12 +74,12 @@ Res<> parse() {
             default: { type = 1; break; }
         }
 
-        info->memmap.pushBack((Zgen::Core::PrekernelInfo::_MemmapEntry) {
+        info->memmap.pushBack((Realms::Core::PrekernelInfo::_MemmapEntry) {
             .range = {
                 entry->base,
                 entry->length,
             },
-            .type   = (decltype(Zgen::Core::PrekernelInfo::_MemmapEntry::type)) type,
+            .type   = (decltype(Realms::Core::PrekernelInfo::_MemmapEntry::type)) type,
         });
     }
 

@@ -1,9 +1,9 @@
 #pragma once
 
-#include <zgen/hal/event.h>
-#include <zgen/hal/io.h>
+#include <realms/hal/event.h>
+#include <realms/hal/io.h>
 
-namespace Zgen::Hal::x86_64 {
+namespace Realms::Hal::x86_64 {
 
 struct Pic : public Hal::Events {
     Hal::PortIo _io;
@@ -30,4 +30,4 @@ struct Pic : public Hal::Events {
     Res<> data(u8 data) { return _io.out8(1, data); }
 };
 
-} // namespace Zgen::Hal::x86_64
+} // namespace Realms::Hal::x86_64

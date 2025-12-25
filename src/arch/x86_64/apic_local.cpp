@@ -1,13 +1,17 @@
 #include <arch/x86_64/apic.h>
+#include <realms/mm/mem.h>
 #include <sdk-logs/logger.h>
 
-namespace Zgen::Hal::x86_64::Apic {
+namespace Realms::Hal::x86_64::Apic {
 
 Res<> Local::init() {
-    u64 base;
-    base = _device->read<Base>().unwrapOr(0xfee0'0000);
+    _Msr msr;
+
+    u64 base = msr.read<Base>().unwrapOr(0xfee0'0000);
+    _base    = base;
+    _vbase   = try$(Core::mmapVirtIo(base));
     base |= (1ul << 11);
-    try$(_device->write<Base>(base));
+    try$(msr.write<Base>(base));
 
     try$(write<Spurious>(try$(read<Spurious>()) | 0x1ff));
     return Ok();
@@ -42,4 +46,4 @@ Res<> Local::send(Dest dest, Message message, u8 vec) {
     return send(val);
 }
 
-} // namespace Zgen::Hal::x86_64::Apic
+} // namespace Realms::Hal::x86_64::Apic
