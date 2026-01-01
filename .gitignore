@@ -1,6 +1,9 @@
 # Xmake cache
 .xmake/
+.cache/
+.vscode/
 build/
+ext/
 
 .VSCodeCounter/
 
@@ -10,3 +13,4 @@ build/
 
 mem.dmp
 .gdb_history
+compile_commands.json

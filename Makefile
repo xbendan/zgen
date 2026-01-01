@@ -34,7 +34,9 @@ cxxflags = \
     -fno-pic \
     -mno-sse -mno-sse2 -mno-sse3 -mno-sse4 -mno-sse4.1 -mno-sse4.2 \
     -mno-avx -mno-avx2 -mno-mmx \
-    -mcmodel=kernel -mno-red-zone
+    -mcmodel=kernel -mno-red-zone \
+	-D__meta_enable_ranges_deduction \
+	-D__meta_enable_global_namespace
 
 ldflags = \
 	--sysroot=$(sysroot) \
@@ -99,7 +101,7 @@ kernel-x86_64: $(asmobjs) $(cppobjs)
 	@mkdir -p $(target_path)/boot/grub/
 	@cp -v build/target/$(target_arch)/grub.cfg \
 		$(target_path)/boot/grub
-	@grub-mkrescue -o $(image_path) $(target_path)
+	@x86_64-elf-grub-mkrescue -o $(image_path) $(target_path)
 
 run-x86_64: kernel-x86_64
 	@echo "running kernel $(target_arch), with $(qemu)..."

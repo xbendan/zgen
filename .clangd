@@ -1,0 +1,6 @@
+CompileFlags:
+  Add: [
+    "-fdiagnostics-show-template-tree", # 以树状结构展示模板差异
+    "-fno-elide-type",                  # 当模板太复杂时，不要用 [ ... ] 省略中间类型
+    "-fdiagnostics-print-source-range-info"
+  ]
