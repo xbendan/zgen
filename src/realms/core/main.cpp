@@ -1,9 +1,8 @@
 #pragma GCC diagnostic ignored "-Wcomment"
 
 #include <realms/core/api.mem.h>
+#include <realms/core/main.h>
 #include <realms/hal/arch.h>
-#include <realms/init/boot.h>
-#include <realms/init/prekernel.h>
 #include <sdk-logs/logger.h>
 #include <sdk-meta/literals.h>
 #include <sdk-meta/res.h>
@@ -50,8 +49,8 @@ Str BuildDate       = __DATE__ " " __TIME__;
     " |_| \\_\\  \\___|  \\__,_| |_| |_| |_| |_| |___/"
 namespace Realms::Core {
 
-Res<> main(u64 magic, PrekernelInfo* info) {
-    try$(Hal::init(info));
+Res<> main(Boot::Info& info) {
+    try$(Hal::init());
 
     logInfo(KERNEL_SPLASH);
 
@@ -73,18 +72,20 @@ Res<> main(u64 magic, PrekernelInfo* info) {
         "Prekernel Info:\n"
         "         - Magic:          {:#x}\n"
         "         - Agent Name:     {}\n"
-        "         - Agent Version:  {}\n"
-        "         - Offset Phys:    {:#x}\n"
-        "         - Offset Virt:    {:#x}\n",
-        magic,
-        Str { info->agentName },
-        Str { info->agentVersion },
-        info->offsetPhys,
-        info->offsetVirt);
+        "         - Agent Version:  {}\n",
+        info.magic,
+        info.agent,
+        info.version);
 
-    try$(setupMemory(info));
+    try$(setupMemory(info
+                     | filter$(it.tag == Boot::Tag::Memory)
+                     | select$(it.template as<Boot::Tag::Memory>())));
 
     return Ok();
 }
 
 } // namespace Realms::Core
+
+[[noreturn]] void panic([[maybe_unused]] char const* message) {
+    __builtin_unreachable();
+}
