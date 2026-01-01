@@ -1,7 +1,5 @@
-#include <limine.h>
+#include <boot/protos/limine.h>
 #include <realms/hal/vmm.h>
-#include <realms/init/boot.h>
-#include <realms/init/prekernel.h>
 #include <sdk-meta/error.h>
 #include <sdk-meta/res.h>
 #include <sdk-meta/types.h>

@@ -1,6 +1,4 @@
-#include <multiboot2.h>
-#include <realms/init/boot.h>
-#include <realms/init/prekernel.h>
+#include <boot/protos/multiboot2.h>
 #include <sdk-meta/types.h>
 
 namespace multiboot2 {
