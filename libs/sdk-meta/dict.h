@@ -39,14 +39,14 @@ struct Dict {
         Dict&    table;
         Opt<V&>  value;
 
-        V& operator=(V const& val) {
+        Subscript& operator=(V const& val) {
             if (value) {
                 *value = val;
             } else {
                 table.put(key, val);
                 value = table.get(key);
             }
-            return value.unwrap();
+            return *this;
         }
 
         operator Opt<V&>() { return value; }
@@ -54,14 +54,17 @@ struct Dict {
 
     Dict(usize cap = defaultCapacity)
         : _buckets(Math::nextPrime(cap)),
-          _entries(_buckets.len()) {
+          _entries(_buckets.len()),
+          _count(0),
+          _version(0),
+          _released(0) {
         for (int i = 0; i < _buckets.len(); i++) {
             _buckets[i] = -1; // Initialize buckets to -1 (empty)
         }
         _releaseIndex = -1;
     }
 
-    Dict(InitializerList<Inner> list) : Dict(list.size()) {
+    Dict(Items<Inner> list) : Dict(list.size()) {
         for (Inner const& pair : list) { }
     }
 
@@ -144,18 +147,17 @@ struct Dict {
             _releaseIndex = _entries[i]._next;
             _released--;
             return i;
-        } else {
-            if (count() == _entries.len()) {
-                if (not force) {
-                    return {};
-                }
-                resize();
-                i = _count;
-            }
-            i = _count;
-            _count++;
-            return i;
         }
+        if (count() == _entries.len()) {
+            if (not force) {
+                return {};
+            }
+            resize();
+            i = _count;
+        }
+        i = _count;
+        _count++;
+        return i;
     }
 
     void put(K const& key, V const& value) {
@@ -320,24 +322,9 @@ struct Dict {
         }
     }
 
-    auto iter() {
-        return Iter([this, i = 0uz, v = _version] mutable -> Opt<Entry&> {
-            if (v != _version) {
-                panic("Dict::iter(): Dict modified during iteration");
-            }
-            while (i < _entries.len()) {
-                auto& entry = _entries[i++];
-                if (entry._hashCode >= 0) {
-                    return &entry;
-                }
-            }
-            return {};
-        });
-    }
+    // constexpr auto begin() { return iter(); }
 
-    auto begin() -> decltype(iter()) { return iter(); }
-
-    auto end() -> None { return {}; }
+    // constexpr auto end() { return NONE; }
 };
 
 } // namespace Meta

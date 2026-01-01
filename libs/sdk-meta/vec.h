@@ -6,6 +6,7 @@
 template <typename S, typename T = typename S::Inner>
 struct _Vec {
     using Inner = T;
+    using E     = T;
 
     S _buf {};
 

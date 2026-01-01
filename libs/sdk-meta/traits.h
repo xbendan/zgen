@@ -172,10 +172,10 @@ template <typename T>
 inline constexpr bool Ptr<T*> = true;
 
 template <typename T>
-inline constexpr bool MemberPtr = false;
+inline constexpr bool Field = false;
 
 template <typename T, typename U>
-inline constexpr bool MemberPtr<T U::*> = true;
+inline constexpr bool Field<T U::*> = true;
 
 template <typename T>
 struct RemovePtr {
@@ -193,7 +193,7 @@ template <typename T>
 concept Ptr = _::Ptr<T>;
 
 template <typename T>
-concept MemberPtr = _::MemberPtr<T>;
+concept Field = _::Field<T>;
 
 template <typename T>
 using RemovePtr = typename _::RemovePtr<RemoveCv<T>>::Type;
@@ -264,7 +264,7 @@ template <typename T>
 concept Fundamental = Arithmetic<T> or Void<T>;
 
 template <typename T>
-concept Scalar = Fundamental<T> or Ptr<T> or MemberPtr<T> or Enum<T>;
+concept Scalar = Fundamental<T> or Ptr<T> or Field<T> or Enum<T>;
 
 template <typename T>
 using UnderlyingType = __underlying_type(T);

@@ -2,7 +2,7 @@
 
 #include <sdk-meta/types.h>
 
-namespace Sdk::Math {
+namespace Simd {
 
 using i8x2  = i8 __attribute__((vector_size(2)));
 using i8x4  = i8 __attribute__((vector_size(4)));
@@ -40,11 +40,11 @@ using u32x8 = u32 __attribute__((vector_size(32)));
 using u64x2 = u64 __attribute__((vector_size(16)));
 using u64x4 = u64 __attribute__((vector_size(32)));
 
-using f32x2 = float __attribute__((vector_size(8)));
-using f32x4 = float __attribute__((vector_size(16)));
-using f32x8 = float __attribute__((vector_size(32)));
+using f32x2 = f32 __attribute__((vector_size(8)));
+using f32x4 = f32 __attribute__((vector_size(16)));
+using f32x8 = f32 __attribute__((vector_size(32)));
 
-using f64x2 = double __attribute__((vector_size(16)));
-using f64x4 = double __attribute__((vector_size(32)));
+using f64x2 = f64 __attribute__((vector_size(16)));
+using f64x4 = f64 __attribute__((vector_size(32)));
 
-} // namespace Sdk::Math
+} // namespace Simd

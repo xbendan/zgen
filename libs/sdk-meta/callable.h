@@ -25,8 +25,7 @@ template <typename T>
 concept FuncPtr = Ptr<T> and Func<RemovePtr<T>>;
 
 template <typename U, typename... Args>
-using Ret = decltype(Meta::declval<U>()(
-    Meta::forward<Args>(Meta::declval<Args>())...));
+using Ret = decltype(::declval<U>()(Meta::forward<Args>(::declval<Args>())...));
 
 template <typename F, typename... Args>
 concept Callable = requires(F f) { f(declval<Args>()...); };

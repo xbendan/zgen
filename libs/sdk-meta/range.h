@@ -7,7 +7,7 @@
 
 template <typename T, typename = struct _RangeTag>
 struct Range {
-    using Size = decltype(Meta::declval<T>() - Meta::declval<T>());
+    using Size = decltype(::declval<T>() - ::declval<T>());
 
     T    _start {};
     Size _size;

@@ -78,9 +78,26 @@ constexpr inline auto COPY = Copy {};
 constexpr inline auto MOVE = Move {};
 
 template <typename T>
-using InitializerList = std::initializer_list<T>;
+using Items = std::initializer_list<T>;
 
-[[gnu::always_inline]] inline void* operator new(usize size, void* p) noexcept {
+template <usize... Ns>
+struct Indices {
+    static constexpr usize size() { return sizeof...(Ns); }
+};
+
+template <usize N, usize... Ns>
+struct _makeIndices : _makeIndices<N - 1, N - 1, Ns...> { };
+
+template <usize... Ns>
+struct _makeIndices<0, Ns...> {
+    using Type = Indices<Ns...>;
+};
+
+template <usize N>
+using makeIndices = typename _makeIndices<N>::Type;
+
+[[gnu::always_inline]] inline void* operator new([[maybe_unused]] usize size,
+                                                 void* p) noexcept {
     return p;
 }
 

@@ -13,7 +13,7 @@ struct Opt;
 // MARK: - Reference specialization
 
 template <typename T>
-    requires(Meta::Same<Meta::RemoveCvRef<T>&, T>)
+    requires(Meta::LvalueRef<T> or Meta::RvalueRef<T>)
 struct Opt<T> {
     using Inner = Meta::RemoveCvRef<T>*;
 
@@ -21,7 +21,7 @@ struct Opt<T> {
         None  _none;
         Inner _value;
     };
-    bool _present { false };
+    bool _present;
 
     [[gnu::always_inline]] constexpr Opt() : _none(), _present(false) { }
 
@@ -29,7 +29,7 @@ struct Opt<T> {
 
     template <typename U = T>
         requires(not Same<RemoveCvRef<U>, Opt<T>> and Convertible<U, T>)
-    [[gnu::always_inline]] constexpr Opt(U const& value)
+    [[gnu::always_inline]] constexpr Opt(U&& value)
         : _value(&value),
           _present(true) { }
 
@@ -275,8 +275,8 @@ struct Opt {
     using Inner = T;
 
     union {
-        None _none;
-        T    _value;
+        None  _none;
+        Inner _value;
     };
     bool _present { false };
 

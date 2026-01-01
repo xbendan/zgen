@@ -3,6 +3,7 @@
 #include <sdk-meta/cursor.h>
 #include <sdk-meta/hash.h>
 #include <sdk-meta/id.h>
+#include <sdk-meta/limits.h>
 #include <sdk-meta/lock.h>
 #include <sdk-meta/manual.h>
 #include <sdk-meta/opt.h>

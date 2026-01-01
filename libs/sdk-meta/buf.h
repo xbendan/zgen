@@ -274,7 +274,11 @@ struct Buf {
 
     T* begin() { return buf(); }
 
+    constexpr T const* begin() const { return buf(); }
+
     T* end() { return buf() + _len; }
+
+    constexpr T const* end() const { return buf() + _len; }
 
     void leak() {
         _buf = nullptr;
@@ -309,8 +313,7 @@ struct InlineBuf {
             _buf[i].ctor(buf[i]);
     }
 
-    InlineBuf(InitializerList<T> other)
-        : InlineBuf(other.begin(), other.size()) { }
+    InlineBuf(Items<T> other) : InlineBuf(other.begin(), other.size()) { }
 
     InlineBuf(Sliceable<T> auto const& other)
         : InlineBuf(other.buf(), other.len()) { }

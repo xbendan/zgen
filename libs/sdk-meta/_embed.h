@@ -18,8 +18,4 @@ void enterCritical();
 
 void leaveCritical();
 
-// MARK: CPU -------------------------------------------------------------------
-
-usize currentId();
-
 } // namespace _Embed

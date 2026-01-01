@@ -1,6 +1,7 @@
 #pragma once
 
 #include <sdk-meta/types.h>
+#include <sdk-meta/utility.h>
 
 namespace Meta {
 
@@ -40,6 +41,27 @@ struct Array {
     [[gnu::always_inline]] constexpr usize len() const { return N; }
 };
 
+template <class T, usize N, usize... Ns>
+static constexpr Array<T, N> _toArray(T (&a)[N], Indices<Ns...>) {
+    return { { a[Ns]... } };
+}
+
+template <class T, usize N>
+static constexpr Array<T, N> toArray(T (&a)[N]) {
+    return _toArray(a, makeIndices<N>());
+}
+
+template <class T, usize N, usize... Ns>
+static constexpr Array<T, N> _toArray(T (&&a)[N], Indices<Ns...>) {
+    return { { ::move(a[Ns])... } };
+}
+
+template <class T, usize N>
+static constexpr Array<T, N> toArray(T (&&a)[N]) {
+    return _toArray(a, makeIndices<N>());
+}
+
 } // namespace Meta
 
 using Meta::Array;
+using Meta::toArray;
