@@ -24,7 +24,7 @@ union Cpuid {
 
     struct Capability {
         union {
-            struct [[packed]] {
+            struct [[gnu::packed]] {
                 u32 sse3: 1;      // Streaming SIMD Extensions 3
                 u32 pclmulqdq: 1; // PCLMULQDQ instruction
                 u32 ds64: 1;      // 64-bit Debug Trace Enable
@@ -62,7 +62,7 @@ union Cpuid {
             u32 ecx;
         };
         union {
-            struct [[packed]] {
+            struct [[gnu::packed]] {
                 u32 fpu: 1;  // Onboard x87 FPU
                 u32 vme: 1;  // Virtual 8086 Mode Extension
                 u32 de: 1;   // Debugging Extension
@@ -150,7 +150,7 @@ static Array<char, 12> _vendor() {
 }
 
 static Array<char, 48> _brand() {
-    union [[packed]] {
+    union [[gnu::packed]] {
         Array<Cpuid, 4> ids;
         Array<char, 48> str;
     } buf {};

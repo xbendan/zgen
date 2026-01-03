@@ -6,14 +6,13 @@
 #include <sdk-meta/index.h>
 #include <sdk-meta/iter.h>
 #include <sdk-meta/ptr.h>
-#include <sdk-meta/ref.h>
 #include <sdk-meta/slice.h>
 #include <sdk-meta/str.h>
 #include <sdk-meta/types.h>
 
 namespace Realms::Hal::x86_64 {
 
-struct [[packed]] Entry {
+struct [[gnu::packed]] Entry {
     enum : u64 {
         PRESENT       = (1 << 0),
         READWRITE     = (1 << 1),
@@ -75,12 +74,12 @@ struct [[packed]] Entry {
 static_assert(sizeof(Entry) == 8);
 
 template <usize L>
-struct [[packed]] alignat(Hal::PAGE_SIZE) Pml {
+struct [[gnu::packed]] alignat(Hal::PAGE_SIZE) Pml {
     static constexpr usize Level = L;
     static constexpr usize Len   = 512;
 
-    using Inner = Entry;
-    Array<Entry, Len> entries;
+    using E = Entry;
+    Array<E, Len> entries;
 
     Entry& operator[](usize i) {
         return entries[i];
@@ -90,7 +89,7 @@ struct [[packed]] alignat(Hal::PAGE_SIZE) Pml {
         return entries[i];
     }
 
-    Index indexOf(u64 virt) const {
+    usize indexOf(u64 virt) const {
         return (virt >> (12 + (Level - 1) * 9)) & 0x1ff;
     }
 
@@ -109,7 +108,7 @@ struct [[packed]] alignat(Hal::PAGE_SIZE) Pml {
         return map(indexOf(virt), phys, flags);
     }
 
-    Res<> map(Index                index,
+    Res<> map(usize                index,
               uflat                addr,
               Flags<Hal::VmmFlags> flags
               = { Hal::VmmFlags::PRESENT | Hal::VmmFlags::WRITE });

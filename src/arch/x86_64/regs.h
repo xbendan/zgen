@@ -5,7 +5,7 @@
 
 namespace Realms::Hal::x86_64 {
 
-struct [[packed]] Regs {
+struct [[gnu::packed]] Regs {
     u64 r15, r14, r13, r12, r11, r10, r9, r8;
     u64 rbp, rdi, rsi, rdx, rcx, rbx, rax;
     u64 err;
@@ -21,7 +21,8 @@ struct _Msr : public Hal::Io {
                 "Msr::in: only 8-byte accesses are supported");
         }
 
-        u32 low, high;
+        u32 low;
+        u32 high;
         asm volatile("rdmsr" : "=a"(low), "=d"(high) : "c"((u32) offset));
         return Ok(((u64) high << 32) | low);
     }
@@ -52,7 +53,8 @@ enum class Msr : u32 {
 };
 
 static inline u64 rdmsr(Msr msr) {
-    u32 low, high;
+    u32 low;
+    u32 high;
     asm volatile("rdmsr" : "=a"(low), "=d"(high) : "c"((u32) msr));
     return ((u64) high << 32) | low;
 }

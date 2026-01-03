@@ -8,7 +8,7 @@ struct Rgb {
     u8 r, g, b, a;
 };
 
-union [[packed]] iRgb {
+union [[gnu::packed]] iRgb {
     u8 bits;
     struct {
         u8 r: 1;

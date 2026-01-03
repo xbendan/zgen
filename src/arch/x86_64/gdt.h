@@ -48,7 +48,7 @@ struct Gdt {
         LONG_MODE = 0b0010'0000
     };
 
-    struct [[packed]] Entry {
+    struct [[gnu::packed]] Entry {
         u16 limitLow;
         u16 baseLow;
         u8  baseMedium;
@@ -88,7 +88,7 @@ struct Gdt {
     };
     static_assert(sizeof(Entry) == 8);
 
-    struct [[packed]] TssEntry {
+    struct [[gnu::packed]] TssEntry {
         u16 len;
         u16 baseLow;
         u8  baseMedium;
@@ -136,7 +136,7 @@ struct Gdt {
                   { 0x0000, 0x0000, 0x00, 0b1111'0010, 0b0000'0000, 0x00 }),
           tssEntry(tss) { }
 
-    struct [[packed]] Pack {
+    struct [[gnu::packed]] Pack {
         u16 limit;
         u64 base;
 

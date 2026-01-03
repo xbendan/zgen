@@ -18,7 +18,7 @@ struct Idt {
         USER = 0b0110'0000,
     };
 
-    struct [[packed]] Entry {
+    struct [[gnu::packed]] Entry {
         u16 baseLow;
         u16 sel;
         u8  ist: 3;
@@ -43,7 +43,7 @@ struct Idt {
 
     Array<Entry, LEN> entries {};
 
-    struct [[packed]] Pack {
+    struct [[gnu::packed]] Pack {
         u16 limit;
         u64 base;
 

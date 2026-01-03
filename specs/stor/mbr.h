@@ -5,7 +5,7 @@
 
 namespace Mbr {
 
-struct [[packed]] Entry {
+struct [[gnu::packed]] Entry {
     u8           status;
     Array<u8, 3> chsBegin;
     u8           type;
@@ -14,7 +14,7 @@ struct [[packed]] Entry {
     u32          lbaLength;
 };
 
-struct [[packed]] Table {
+struct [[gnu::packed]] Table {
     u8    bootCode[440];
     u32   diskIdentifier;
     u16   __reserved__0;

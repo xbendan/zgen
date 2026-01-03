@@ -5,7 +5,7 @@
 
 namespace Acpi {
 
-struct [[packed]] Rsdp {
+struct [[gnu::packed]] Rsdp {
     Array<char, 8> sign;
     u8             checksum;
     Array<char, 6> oemId;
@@ -13,14 +13,14 @@ struct [[packed]] Rsdp {
     u32            rsdt;
 };
 
-struct [[packed]] Xsdp : public Rsdp {
+struct [[gnu::packed]] Xsdp : public Rsdp {
     u32          len;
     u64          xsdt;
     u8           checksumExt;
     Array<u8, 3> reserved;
 };
 
-struct [[packed]] Desc {
+struct [[gnu::packed]] Desc {
     Array<char, 4> sign;
     u32            length;
     u8             revision;
@@ -37,15 +37,15 @@ struct [[packed]] Desc {
     }
 };
 
-struct [[packed]] Rsdt : public Desc {
+struct [[gnu::packed]] Rsdt : public Desc {
     u32 tables[];
 };
 
-struct [[packed]] Xsdt : public Desc {
+struct [[gnu::packed]] Xsdt : public Desc {
     u64 tables[];
 };
 
-struct [[packed]] addresspkg {
+struct [[gnu::packed]] addresspkg {
     /**
          * @brief address space indicates where to read data
          * 0: System Memory
@@ -69,48 +69,48 @@ struct [[packed]] addresspkg {
     u64 address;
 };
 
-struct [[packed]] Madt : public Desc {
+struct [[gnu::packed]] Madt : public Desc {
     u32 address;
     u32 flags;
-    struct [[packed]] Item {
+    struct [[gnu::packed]] Item {
         u8 type;
         u8 length;
     } _items[];
 
-    struct [[packed]] LocalApic : public Item {
+    struct [[gnu::packed]] LocalApic : public Item {
         u8  processorId;
         u8  apicId;
         u32 flags;
     };
 
-    struct [[packed]] IoApic : public Item {
+    struct [[gnu::packed]] IoApic : public Item {
         u8  apicId;
         u8  __reserved__;
         u32 address;
         u32 gSiB;
     };
 
-    struct [[packed]] Iso : public Item {
+    struct [[gnu::packed]] Iso : public Item {
         u8  bus;
         u8  src;
         u32 gSi;
         u16 flags;
     };
 
-    struct [[packed]] Nmi : public Item {
+    struct [[gnu::packed]] Nmi : public Item {
         u8  processorId;
         u16 flags;
         u8  lInt;
     };
 
-    struct [[packed]] Localx2Apic : public Item {
+    struct [[gnu::packed]] Localx2Apic : public Item {
         u16 __reserved__;
         u32 x2apicId;
         u32 flags;
         u32 uid;
     };
 
-    struct [[packed]] Nmix2Apic : public Item {
+    struct [[gnu::packed]] Nmix2Apic : public Item {
         u16          flags;
         u32          gSi;
         u8           lInt;
@@ -118,7 +118,7 @@ struct [[packed]] Madt : public Desc {
     };
 };
 
-struct [[packed]] Hpet : public Desc {
+struct [[gnu::packed]] Hpet : public Desc {
     u8         hwrevId;
     u8         info;
     u16        vendorId;
@@ -128,9 +128,9 @@ struct [[packed]] Hpet : public Desc {
     u8         protect;
 };
 
-struct [[packed]] Mcfg : public Desc {
+struct [[gnu::packed]] Mcfg : public Desc {
     u64 __reserved__;
-    struct [[packed]] Packet {
+    struct [[gnu::packed]] Packet {
         u64 base;
         u16 pseg;
         u8  busStart;
@@ -139,7 +139,7 @@ struct [[packed]] Mcfg : public Desc {
     } packets[];
 };
 
-struct [[packed]] Fadt : public Desc {
+struct [[gnu::packed]] Fadt : public Desc {
     u32 fwctrl;
     u32 dsdt;
 };

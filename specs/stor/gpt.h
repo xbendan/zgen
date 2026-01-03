@@ -18,7 +18,7 @@ static constexpr inline Mbr::Entry PROTECTIVE_MASTER_BOOT_RECORD = {
     .lbaLength = 0xFFFF'FFFF,
 };
 
-struct [[packed]] Entry {
+struct [[gnu::packed]] Entry {
     Uuid            parId;
     Uuid            uid;
     u64             lbaBegin;
@@ -27,7 +27,7 @@ struct [[packed]] Entry {
     Array<char, 72> name;
 };
 
-struct [[packed]] Table {
+struct [[gnu::packed]] Table {
     u64  signature;
     u32  revision;
     u32  headerSize;
