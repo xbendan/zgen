@@ -56,7 +56,7 @@ struct [[gnu::packed]] Flat {
     }
 };
 
-struct [[gnu::packed]] uflat {
+export struct [[gnu::packed]] uflat {
     [[gnu::always_inline]] constexpr uflat() = default;
 
     [[gnu::always_inline]] constexpr uflat(Convertible<u64> auto ptr)

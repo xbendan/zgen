@@ -81,7 +81,7 @@ struct _Cell {
     }
 };
 
-template <typename L, typename T>
+export template <typename L, typename T>
 struct Cell : _Cell<L> {
     Manual<T> _buf {};
 
@@ -320,31 +320,31 @@ struct _Weak {
     }
 };
 
-template <typename T>
+export template <typename T>
 using Rc = _Rc<Unlock, T>;
 
-template <typename T>
+export template <typename T>
 using WeakRc = _Weak<Unlock, T>;
 
-template <typename T>
+export template <typename T>
 using Arc = _Rc<Lock, T>;
 
-template <typename T>
+export template <typename T>
 using WeakArc = _Weak<Lock, T>;
 
 /// Allocates an object of type `T` on the heap and returns
 /// a strong reference to it.
-template <typename T, typename... Args>
-constexpr static Rc<T> makeRc(Args&&... args) {
+export template <typename T, typename... Args>
+constexpr Rc<T> makeRc(Args&&... args) {
     return { MOVE, new Cell<Unlock, T>(forward<Args>(args)...) };
 }
 
-template <typename T, typename... Args>
-constexpr static Arc<T> makeArc(Args&&... args) {
+export template <typename T, typename... Args>
+constexpr Arc<T> makeArc(Args&&... args) {
     return { MOVE, new Cell<Lock, T>(forward<Args>(args)...) };
 }
 
-template <typename T>
+export template <typename T>
 struct RefCounted {
     friend T;
 
@@ -388,7 +388,7 @@ protected:
     }
 };
 
-template <typename T>
+export template <typename T>
 struct AtomicRefCounted {
     friend T;
 

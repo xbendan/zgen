@@ -1,10 +1,12 @@
-#pragma once
+module;
 
-#include <sdk-meta/manual.h>
-#include <sdk-meta/opt.h>
-#include <sdk-meta/types.h>
+export module sdk:queue;
 
-namespace Meta {
+import :manual;
+import :opt;
+import :types;
+
+export namespace Meta {
 
 template <typename T>
 struct Queue { };
@@ -20,13 +22,13 @@ struct CircularQueue {
     CircularQueue() noexcept : _size(0), _begin(0) { }
 
     Opt<T&> enqueue(T const& value)
-        requires(Meta::CopyConstructible<T>)
+        requires(CopyConstructible<T>)
     {
         return enqueue(::move(value));
     }
 
     Opt<T&> enqueue(T&& value)
-        requires(Meta::MoveConstructible<T>)
+        requires(MoveConstructible<T>)
     {
         if (_size == Capacity) {
             return NONE;
@@ -40,7 +42,7 @@ struct CircularQueue {
 
     template <typename... Args>
     Opt<T&> emplace(Args&&... args)
-        requires(Meta::Constructible<T, Args...>)
+        requires(Constructible<T, Args...>)
     {
         if (_size == Capacity) {
             return NONE;
