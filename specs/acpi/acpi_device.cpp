@@ -3,19 +3,22 @@
 #include <realms/hal/vmm.h>
 #include <realms/mm/mem.h>
 #include <sdk-logs/logger.h>
-#include <sdk-meta/iter.h>
+#include <sdk-meta/ranges.h>
 
 namespace Acpi {
 
-static Str sign = "RSD PTR ";
+namespace {
+[[maybe_unused]] Registration<Mod, Acpi::BusDevice> _;
+
+Str sign = "RSD PTR ";
+} // namespace
 
 Res<> BusDevice::onInit() {
-    auto addr
-        = range<u64>(0x0, 0x7c00, 0x10)
-              .concat(range<u64>(0x8'0000, 0xa'0000, 0x10))
-              .concat(range<u64>(0xe'0000, 0x10'0000, 0x10))
-              .first$(strncmp((char const*) it, sign.buf(), sign.len()) == 0)
-              .mapTo<uflat>();
+    auto addr = range<u64>(0x0, 0x7c00, 0x10)
+              | range<u64>(0x8'0000, 0xa'0000, 0x10)
+              | range<u64>(0xe'0000, 0x10'0000, 0x10)
+              | first$(strncmp((char const*) it, sign.buf(), sign.len()) == 0)
+              | select$(uflat(it));
     if (not addr) {
         return Error::notFound("acpi::onInit: no rsdp found");
     }
@@ -37,7 +40,7 @@ Res<> BusDevice::onInit() {
                 "   - Oem ID: {}",
                 addr,
                 Str(p->oemId));
-            _rsdt = Realms::Core::mmapVirtIo(p->rsdt).take();
+            _rsdt = Realms::Sys::mmapVirtIo(p->rsdt).take();
             break;
         }
         case 2: {
@@ -50,9 +53,9 @@ Res<> BusDevice::onInit() {
                 addr,
                 (u64) x->xsdt,
                 Str(x->oemId.buf(), 6));
-            Xsdp* xsdp = Realms::Core::mmapVirtIo(uflat(p)).take();
-            _rsdt      = Realms::Core::mmapVirtIo(xsdp->rsdt).take();
-            _xsdt      = Realms::Core::mmapVirtIo(xsdp->xsdt).take();
+            Xsdp* xsdp = Realms::Sys::mmapVirtIo(uflat(p)).take();
+            _rsdt      = Realms::Sys::mmapVirtIo(xsdp->rsdt).take();
+            _xsdt      = Realms::Sys::mmapVirtIo(xsdp->xsdt).take();
             break;
         }
         default: {
@@ -65,7 +68,7 @@ Res<> BusDevice::onInit() {
     return Ok();
 }
 
-Res<String> BusDevice::path(Rc<Io::Dev> dev) {
+Res<String> BusDevice::path([[maybe_unused]] Rc<Io::Dev> dev) {
     return Error::notImplemented();
 }
 
@@ -78,7 +81,7 @@ Res<Slice<Rc<Io::Dev>>> BusDevice::devices() {
     return Error::notImplemented();
 }
 
-Res<> BusDevice::remove(Rc<Dev> dev) {
+Res<> BusDevice::remove([[maybe_unused]] Rc<Dev> dev) {
     return Error::notImplemented();
 }
 
@@ -92,7 +95,7 @@ Opt<Desc&> BusDevice::lookupTable(Str name) {
         if (not fadt)
             return NONE;
 
-        return Realms::Core::mmapVirtIo((fadt->as<Acpi::Fadt>()->dsdt))
+        return Realms::Sys::mmapVirtIo((fadt->as<Acpi::Fadt>()->dsdt))
             .take()
             .as<Acpi::Desc>();
     }
@@ -103,7 +106,7 @@ Opt<Desc&> BusDevice::lookupTable(Str name) {
     for (int i = 0; i < entries; i++) {
         u64 ent = _revision ? _xsdt->tables[i] : _rsdt->tables[i];
 
-        auto* desc = (Acpi::Desc*) try$(Realms::Core::mmapVirtIo(ent));
+        auto* desc = (Acpi::Desc*) try$(Realms::Sys::mmapVirtIo(ent));
         if (cstrEq(desc->sign.buf(), name.buf())) {
             logInfo("acpi::lookupTable: found table {} at {:#x}", name, ent);
             // tables[name] = desc;

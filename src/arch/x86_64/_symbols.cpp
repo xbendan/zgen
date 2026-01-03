@@ -5,7 +5,7 @@ using ptrdiff_t
 
 extern "C" {
 
-    void _exit(int status) {
+    void _exit([[maybe_unused]] int status) {
         while (1) {
             // Infinite loop to halt execution
             __asm__ __volatile__("cli; hlt");

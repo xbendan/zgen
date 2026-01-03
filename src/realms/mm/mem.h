@@ -5,13 +5,26 @@
 #include <realms/hal/vmm.h>
 #include <sdk-meta/range.h>
 #include <sdk-meta/rc.h>
-#include <sdk-meta/ref.h>
 
-namespace Realms::Core {
+namespace Realms::Sys {
 
-Hal::Pmm& pmm();
+struct MemoryRange : Range<uflat, struct _MemoryRangeTag> {
+    using Range<uflat, struct _MemoryRangeTag>::Range;
 
-Hal::Kmm& kmm();
+    enum Type {
+        Usable,
+        Reserved,
+        Reclaimable,
+        Corrupted,
+        Nvs,
+    } type;
+
+    [[gnu::always_inline]] bool usable() const { return type == Type::Usable; }
+};
+
+Sys::Pmm& pmm();
+
+Sys::Kmm& kmm();
 
 Opt<uflat> mmapVirtIo(uflat phys);
 
@@ -22,10 +35,10 @@ Opt<R> mmapVirtIoRange(R phys) {
 
 Opt<uflat> mmapPhys(uflat virt);
 
-Hal::Vmm& globalVmm();
+Sys::Vmm& globalVmm();
 
-Res<Hal::Vmm&> createKernelVmm();
+Res<Sys::Vmm&> createKernelVmm();
 
-Res<Rc<Hal::Vmm>> createUserVmm();
+Res<Rc<Sys::Vmm>> createUserVmm();
 
-} // namespace Realms::Core
+} // namespace Realms::Sys

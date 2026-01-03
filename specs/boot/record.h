@@ -1,5 +1,6 @@
 #pragma once
 
+#include <sdk-meta/range.h>
 #include <sdk-meta/types.h>
 
 namespace Boot {
@@ -53,8 +54,8 @@ struct Record {
 
 template <>
 struct _Record<Tag::Memory> : Record {
-    u64 start, length;
-    u32 type;
+    Range<u64> range;
+    u32        type;
 };
 
 } // namespace Boot

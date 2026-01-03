@@ -5,11 +5,11 @@
 
 namespace Pci {
 
-struct Dev : public Id, public Realms::Core::Io::Dev {
+struct Dev : public Id, public Realms::Sys::Io::Dev {
     Dev(u8 bus, u8 slot, u8 func);
     Dev(u8 bus, u8 slot, u8 func, u16 vendorId, u16 deviceId);
     Dev(Id const& id);
-    Dev(Id const& id, String name, Realms::Core::Io::Dev::Type type);
+    Dev(Id const& id, String name, Realms::Sys::Io::Dev::Type type);
 
     Dev(Dev const&)            = delete;
     Dev& operator=(Dev const&) = delete;

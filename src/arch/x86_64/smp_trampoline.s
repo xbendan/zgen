@@ -34,7 +34,7 @@ smp_trampoline_start:
     mov cr0, eax
 
     lgdt [smp_trampoline_gdt_ptr]
-    jmp 08h:(smp_trampoline_long_mode_entry)
+    jmp 08h:(smp_trampoline_entry + (smp_trampoline_long_mode_entry - smp_trampoline_start))
     hlt
 
 [Bits 64]

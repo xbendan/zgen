@@ -3,19 +3,17 @@
 #include <realms/hal/kmm.h>
 #include <realms/hal/pmm.h>
 #include <realms/hal/vmm.h>
-#include <realms/init/prekernel.h>
 #include <realms/mm/kmm.slub.h>
 #include <sdk-meta/list.h>
-#include <sdk-meta/ref.h>
 
-namespace Realms::Core {
+namespace Realms::Sys {
 
 struct PmmBuddy : public Hal::Pmm {
-    struct [[packed]] Item : LinkedTrait<Item> {
+    struct [[gnu::packed]] Item : LinkedTrait<Item> {
         u8    order;
         uflat addr;
 
-        union [[packed]] {
+        union [[gnu::packed]] {
             Item* head;
             uflat priv;
         };
@@ -29,4 +27,4 @@ struct PmmBuddy : public Hal::Pmm {
     Res<> take(Hal::PmmRange range) override;
 };
 
-} // namespace Realms::Core
+} // namespace Realms::Sys

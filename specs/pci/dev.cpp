@@ -9,21 +9,21 @@ using namespace Realms;
 using namespace Sdk;
 
 Res<usize> Id::in(usize offset, usize size) {
-    u32 addr = (0x8000'0000
-                | (bus << 16)
-                | (slot << 11)
-                | (func << 8)
-                | (offset & 0xfc));
+    // u32 addr = (0x8000'0000
+    //             | (bus << 16)
+    //             | (slot << 11)
+    //             | (func << 8)
+    //             | (offset & 0xfc));
 
     return Error::notImplemented();
 }
 
 Res<> Id::out(usize offset, usize size, usize val) {
-    u32 addr = (0x8000'0000
-                | (bus << 16)
-                | (slot << 11)
-                | (func << 8)
-                | (offset & 0xfc));
+    // u32 addr = (0x8000'0000
+    //             | (bus << 16)
+    //             | (slot << 11)
+    //             | (func << 8)
+    //             | (offset & 0xfc));
 
     return Error::notImplemented();
 }
@@ -50,7 +50,7 @@ Dev::Dev(u8 bus, u8 slot, u8 func, u16 vendorId, u16 deviceId)
 Dev::Dev(Id const& id) : Dev(id.bus, id.slot, id.func) {
 }
 
-Dev::Dev(Id const& id, String name, Realms::Core::Io::Dev::Type type)
+Dev::Dev(Id const& id, String name, Realms::Sys::Io::Dev::Type type)
     : Id(id),
       Core::Io::Dev(
           name,

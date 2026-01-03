@@ -5,7 +5,7 @@
 #include <sdk-meta/res.h>
 #include <sdk-text/str.h>
 
-namespace Realms::Core::Io {
+namespace Realms::Sys::Io {
 
 struct Drv {
     Str name;
@@ -21,4 +21,4 @@ struct Drv {
     virtual Res<> onResume(Rc<Dev> dev) = 0;
 };
 
-} // namespace Realms::Core::Io
+} // namespace Realms::Sys::Io

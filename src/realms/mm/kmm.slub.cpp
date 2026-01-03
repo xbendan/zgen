@@ -1,24 +1,28 @@
+module;
+
 #include <realms/hal/kmm.h>
 #include <realms/hal/pmm.h>
 #include <realms/mm/kmm.slub.h>
 #include <realms/mm/mem.h>
-#include <sdk-meta/iter.h>
+#include <sdk-meta/ranges.h>
 
-namespace Realms::Core {
+export module Realms.Core;
 
-KmmSlub::KmmSlub(Hal::KmmRange kindsRange, Hal::KmmRange blocksRange)
-    : _kinds({ kindsRange.start().as<Kind>(), Sizes.len() }),
+namespace Realms::Sys {
+
+KmmSlub::KmmSlub(Sys::KmmRange kindsRange, Sys::KmmRange blocksRange)
+    : _kinds({ kindsRange.start().as<Kind>(), sizes.len() }),
       _blocks({ blocksRange.start().as<Block>(),
                 blocksRange.size() / sizeof(Block) }) {
-    for (usize i = 0; i < Sizes.len(); i++) { }
+    for (usize i = 0; i < sizes.len(); i++) { }
 }
 
-Res<Hal::KmmRange> KmmSlub::alloc(usize size, Flags<Hal::KmmAllocFlags> flags) {
-    if (size >= Hal::PAGE_SIZE / 2) {
+Res<Sys::KmmRange> KmmSlub::alloc(usize size, Flags<Sys::KmmFlags> flags) {
+    if (size >= Sys::PAGE_SIZE / 2) {
         return Error::notImplemented();
     }
 
-    auto kind = foreach (_kinds).first$(size <= it.size);
+    auto kind = _kinds | first$(size <= it.size);
     if (not kind) {
         return Error::notFound("Kmm::alloc: no suitable kind found");
     }
@@ -37,9 +41,7 @@ Res<Hal::KmmRange> KmmSlub::alloc(usize size, Flags<Hal::KmmAllocFlags> flags) {
     return Error::outOfMemory("Kmm::alloc: no memory available");
 }
 
-Opt<uflat> KmmSlub::alloc(Kind&                     kind,
-                          Node&                     node,
-                          Flags<Hal::KmmAllocFlags> flags) {
+Opt<uflat> KmmSlub::alloc(Kind& kind, Node& node, Flags<Hal::KmmFlags> flags) {
     if (not nonnull(kind, node)) {
         return NONE;
     }
@@ -93,4 +95,4 @@ Res<> KmmSlub::nonnull(Kind& kind, Node& node) {
     return Ok();
 }
 
-} // namespace Realms::Core
+} // namespace Realms::Sys

@@ -158,7 +158,7 @@ struct Com : public TextEncoderBase<> {
     }
 
     Res<usize> write(Bytes bytes) override {
-        for (auto b : foreach (bytes)) {
+        for (auto b : bytes) {
             try$(putByte(b));
         }
 

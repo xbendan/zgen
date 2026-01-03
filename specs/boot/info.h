@@ -3,14 +3,17 @@
 #include <boot/record.h>
 #include <sdk-meta/opt.h>
 #include <sdk-meta/types.h>
+#include <sdk-text/str.h>
 
 namespace Boot {
 
-struct [[packed]] Info {
+struct [[gnu::packed]] Info {
     using E = Record;
 
     u64    magic;
-    u32    agent, version, length;
+    Str    agent;
+    u32    version;
+    u32    length;
     Record records[];
 
     struct It {

@@ -2,7 +2,7 @@
 #include <realms/mm/pmm.bits.h>
 #include <sdk-logs/logger.h>
 
-namespace Realms::Core {
+namespace Realms::Sys {
 
 Res<Hal::PmmRange> PmmBits::alloc(u64 size, Flags<Hal::PmmFlags> flags) {
     LockScoped lock(_lock);
@@ -54,5 +54,5 @@ Res<> PmmBits::mark(Hal::PmmRange range, bool used) {
     return Ok();
 }
 
-} // namespace Realms::Core
+} // namespace Realms::Sys
 

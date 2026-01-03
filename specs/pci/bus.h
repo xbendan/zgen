@@ -10,7 +10,7 @@
 
 namespace Pci {
 
-using namespace Realms::Core;
+using namespace Realms::Sys;
 
 struct BusDevice : public Io::Bus, public Io::Dev {
     Vec<Rc<Pci::Dev>>       _devices = {};
@@ -18,7 +18,7 @@ struct BusDevice : public Io::Bus, public Io::Dev {
     Pci::Mode               _mode;
 
     BusDevice();
-    ~BusDevice();
+    virtual ~BusDevice();
 
     Res<> onInit() override;
 

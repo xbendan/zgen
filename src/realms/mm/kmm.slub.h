@@ -5,12 +5,11 @@
 #include <sdk-meta/list.h>
 #include <sdk-meta/lock.h>
 #include <sdk-meta/pc.h>
-#include <sdk-meta/ref.h>
 #include <sdk-text/str.h>
 
-namespace Realms::Core {
+namespace Realms::Sys {
 
-struct KmmSlub final : public Hal::Kmm {
+struct KmmSlub final : public Sys::Kmm {
     struct Block : public LinkedTrait<Block> {
         struct {
             u32 inuse: 16;
@@ -39,7 +38,7 @@ struct KmmSlub final : public Hal::Kmm {
     };
     static_assert(sizeof(Kind) <= 192);
 
-    static constexpr Array<usize, 16> Sizes = {
+    static constexpr Array<usize, 16> sizes = {
         (8),   (16),  (24),  (32),  (48),  (64),   (96),   (128),
         (192), (256), (384), (512), (768), (1024), (1536), (2048),
     };
@@ -49,10 +48,9 @@ struct KmmSlub final : public Hal::Kmm {
 
     KmmSlub(Hal::KmmRange kindsRange, Hal::KmmRange blocksRange);
 
-    Res<Hal::KmmRange> alloc(usize                     size,
-                             Flags<Hal::KmmAllocFlags> flags) override;
+    Res<Hal::KmmRange> alloc(usize size, Flags<Hal::KmmFlags> flags) override;
 
-    Opt<uflat> alloc(Kind& kind, Node& node, Flags<Hal::KmmAllocFlags> flags);
+    Opt<uflat> alloc(Kind& kind, Node& node, Flags<Hal::KmmFlags> flags);
 
     Res<> free(uflat addr) override;
 
@@ -61,4 +59,4 @@ struct KmmSlub final : public Hal::Kmm {
     Res<> nonnull(Kind& kind, Node& node);
 };
 
-} // namespace Realms::Core
+} // namespace Realms::Sys

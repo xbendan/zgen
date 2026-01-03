@@ -1,22 +1,29 @@
 #pragma once
 
 #include <acpi/tables.h>
+#include <realms/core/mod.h>
 #include <realms/io/bus.h>
 #include <realms/io/dev.h>
 #include <realms/io/drv.h>
 #include <sdk-meta/dict.h>
-#include <sdk-meta/ref.h>
 #include <sdk-text/str.h>
 
 namespace Acpi {
-using namespace Realms::Core;
+using namespace Realms::Sys;
 
-struct BusDevice : public Io::Bus, public Io::Dev {
+struct BusDevice : public Mod, public Io::Bus, public Io::Dev {
+    static constexpr Str  name       = "acpi-bus-device"s;
+    static constexpr auto requisites = toArray({
+        "core.pmm"s,
+        "core.vmm"s,
+        "core.io.bus"s,
+    });
+
     // Dict<Str, Desc*> tables;
     Vec<Rc<Dev>> _devices;
-    Rsdt*        _rsdt;
-    Xsdt*        _xsdt;
-    int          _revision;
+    Rsdt*        _rsdt { nullptr };
+    Xsdt*        _xsdt { nullptr };
+    int          _revision { -1 };
 
     /**
      * @brief Initialize the ACPI controller device.
@@ -27,9 +34,15 @@ struct BusDevice : public Io::Bus, public Io::Dev {
      * @retval Error::unsupported if unknown revision was read.
      */
 
-    BusDevice() : Io::Bus("acpi"s), Io::Dev("acpi-bus-device"s, ""s) { }
+    BusDevice() : Mod(), Io::Bus("acpi"s), Io::Dev("acpi-bus-device"s, ""s) { }
+
+    virtual ~BusDevice() = default;
 
     Res<> onInit() override;
+
+    Res<> onLoad() override;
+
+    Res<> onUnload() override;
 
     Res<String> path(Rc<Dev> dev) override;
 

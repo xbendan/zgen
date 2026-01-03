@@ -4,7 +4,7 @@
 #include <sdk-meta/bits.h>
 #include <sdk-meta/lock.h>
 
-namespace Realms::Core {
+namespace Realms::Sys {
 
 struct PmmBits : public Hal::Pmm {
     Hal::PmmRange _usable;
@@ -43,4 +43,4 @@ struct PmmBits : public Hal::Pmm {
     }
 };
 
-} // namespace Realms::Core
+} // namespace Realms::Sys

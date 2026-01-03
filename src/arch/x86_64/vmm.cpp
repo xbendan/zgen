@@ -156,7 +156,7 @@ Res<> createKernelVmm() {
 
 } // namespace Realms::Hal::x86_64
 
-namespace Realms::Core {
+namespace Realms::Sys {
 
 using Hal::x86_64::_vmm;
 
@@ -171,4 +171,4 @@ Hal::Vmm& globalVmm() {
     return *_vmm;
 }
 
-} // namespace Realms::Core
+} // namespace Realms::Sys

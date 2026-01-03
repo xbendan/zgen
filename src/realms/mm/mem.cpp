@@ -1,5 +1,4 @@
 #include <realms/hal/vmm.h>
-#include <realms/init/boot.h>
 #include <realms/mm/kmm.slub.h>
 #include <realms/mm/mem.h>
 #include <realms/mm/pmm.bits.h>
@@ -8,6 +7,7 @@
 #include <sdk-meta/iter.h>
 #include <sdk-meta/literals.h>
 #include <sdk-meta/ptr.h>
+#include <sdk-meta/ranges.h>
 
 extern "C" u64 __kernel_start;
 extern "C" u64 __kernel_end;
@@ -15,7 +15,7 @@ extern "C" u64 __kernel_load_end;
 extern "C" u64 __bss_start;
 extern "C" u64 __bss_end;
 
-namespace Realms::Core {
+namespace Realms::Sys {
 
 using Sdk::Text::Align;
 using Sdk::Text::aligned;
@@ -23,7 +23,7 @@ using Sdk::Text::aligned;
 Opt<PmmBits> _pmm;
 Opt<KmmSlub> _kmm;
 
-Res<> setupMemory(PrekernelInfo* info) {
+Res<> setupMemory(Ranges<MemoryRange> auto const& ranges) {
     // MARK: - vmm
     Core::createKernelVmm().unwrap("Failed to create global vmm");
     logInfo("Created and loaded global vmm.\n");
@@ -33,23 +33,23 @@ Res<> setupMemory(PrekernelInfo* info) {
 
     // MARK: - scan memory layout
     logInfo("Scanning usable memory regions...\n");
-    for (int i = 0; i < info->memmap.len(); i++)
-        if (info->memmap[i].range.start() == 0x10'0000) {
-            info->memmap[i].range.take(kImageSize);
-        }
+    // for (int i = 0; i < info->memmap.len(); i++)
+    //     if (info->memmap[i].range.start() == 0x10'0000) {
+    //         info->memmap[i].range.take(kImageSize);
+    //     }
 
-    foreach (info->memmap)
-        .forEach$(logInfo(" > {:#x} - {:#x} ({} MiB) {}\n",
-                          aligned(it.range.start(), Align::RIGHT, 16),
-                          aligned(it.range.end(), Align::RIGHT, 16),
-                          aligned(it.range.size() / 1_MiB, Align::RIGHT, 6),
-                          (u32) it.type));
+    auto usable
+        = ranges
+        | filter$(it.type == 0)
+        | peek$(logInfo("Usable range: {:#x} - {:#x} ({} MiB) {}\n",
+                        aligned(it.range.start(), Align::RIGHT, 16),
+                        aligned(it.range.end(), Align::RIGHT, 16),
+                        aligned(it.range.size() / 1_MiB, Align::RIGHT, 6),
+                        (u32) it.type))
+        | select$(it.range)
+        | reduce$(x.merge(y))
+        | select$(it.template into<Hal::PmmRange>());
 
-    auto usable = foreach (info->memmap)
-                      .filter$(it.type == 0)
-                      .select$(it.range)
-                      .reduce$(x.merge(y))
-                      .mapTo$(it.template into<Hal::PmmRange>());
     auto usablePages = usable->size() / Hal::PAGE_SIZE;
 
     if (usable->size() < 16_MiB) {
@@ -63,20 +63,15 @@ Res<> setupMemory(PrekernelInfo* info) {
         Math::div(usable->end(), Hal::PAGE_SIZE * 8, Math::ROUND_UP));
     Opt<Hal::PmmRange> bitsRange = NONE;
 
-    for (auto& entry : foreach (info->memmap)) {
-        if ((entry.type != 0)
-            or (entry.range.start() == 0)
-            or (entry.range.size() < bitsSize)) {
-            continue;
-        }
+    ranges
+        | filter$(it.usable())
+        | filter$((it.start() != 0) and (it.size() >= bitsSize))
+        | peek$(logInfo("Reserving {:#x} - {:#x} for pmm bits\n",
+                        it.start(),
+                        it.start() + bitsSize))
+        | first()
+        | apply$(bitsRange.emplace(it.start(), bitsSize));
 
-        auto range = entry.range.take(bitsSize);
-        logInfo("Reserving {:#x} - {:#x} for pmm bits\n",
-                range.start(),
-                range.start() + bitsSize);
-        bitsRange.emplace(range.start(), bitsSize);
-        break;
-    }
     if (not bitsRange) {
         return Error::outOfMemory("no suitable range for pmm bits");
     }
@@ -84,16 +79,16 @@ Res<> setupMemory(PrekernelInfo* info) {
         *usable,
         Bits((u8*) mmapVirtIo(bitsRange->start()).take(), bitsRange->size()));
 
-    foreach (info->memmap)
-        .filter$((it.type == 0) and (it.range.start() != 0))
-            .forEach$(_pmm->mark(it.range.template into<Hal::PmmRange>().inner(
-                                     Hal::PAGE_SIZE),
-                                 false)
-                          .unwrap());
+    // foreach (info->memmap)
+    //     .filter$((it.type == 0) and (it.range.start() != 0))
+    //         .forEach$(_pmm->mark(it.range.template into<Hal::PmmRange>().inner(
+    //                                  Hal::PAGE_SIZE),
+    //                              false)
+    //                       .unwrap());
 
     struct _Kmm : Hal::Kmm {
-        Res<Hal::KmmRange> alloc(usize                     size,
-                                 Flags<Hal::KmmAllocFlags> flags
+        Res<Hal::KmmRange> alloc(usize                                 size,
+                                 [[maybe_unused]] Flags<Hal::KmmFlags> flags
                                  = {}) override {
             auto pmm = Core::pmm()
                            .alloc(Hal::pageAlignUp(size))
@@ -102,7 +97,9 @@ Res<> setupMemory(PrekernelInfo* info) {
             return Ok(Core::mmapVirtIoRange(pmm).take());
         }
 
-        Res<> free(uflat addr) override { return Error::notImplemented(); }
+        Res<> free([[maybe_unused]] uflat addr) override {
+            return Error::notImplemented();
+        }
 
         Res<> free(Hal::KmmRange range) override {
             return Error::notImplemented();
@@ -151,4 +148,4 @@ Opt<uflat> mmapPhys(uflat virt) {
     return virt - Hal::DIRECT_IO_REGION.start();
 }
 
-} // namespace Realms::Core
+} // namespace Realms::Sys

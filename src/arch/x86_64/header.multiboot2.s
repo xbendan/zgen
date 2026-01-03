@@ -218,6 +218,9 @@ _stackBottom:
     resb 0x10000
 _stackTop:
 
+_bootInfo:
+    resb 0x1000
+
 [Section .text]
 kinit_multiboot2_entry64:
     lgdt [GdtPack64]

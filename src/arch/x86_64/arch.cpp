@@ -7,7 +7,6 @@
 #include <arch/x86_64/idt.h>
 #include <arch/x86_64/regs.h>
 #include <pci/bus.h>
-#include <realms/init/prekernel.h>
 #include <realms/io/devtree.h>
 #include <realms/mm/mem.h>
 #include <sdk-logs/logger.h>
@@ -33,7 +32,7 @@ extern "C" void _intDispatch(int num, x86_64::Regs* regs) {
 x86_64::Idt              _idt;
 Manual<x86_64::CpuLocal> _cpuLocal;
 
-Res<> init(Core::PrekernelInfo* info) {
+Res<> init() {
     static auto _com = x86_64::com1();
     Sdk::out         = { &_com };
     Sdk::err         = { &_com };
@@ -58,7 +57,7 @@ Res<> init(Core::PrekernelInfo* info) {
 
 } // namespace Realms::Hal
 
-namespace Realms::Core {
+namespace Realms::Sys {
 
 [[noreturn]] void mpinitEntry(u16 id) {
     Hal::x86_64::halt();
@@ -137,4 +136,4 @@ Opt<Io::Devtree&> devtree() {
     return s_devtree;
 }
 
-} // namespace Realms::Core
+} // namespace Realms::Sys

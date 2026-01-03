@@ -8,7 +8,7 @@ Res<> parse(Info* info) {
         return Error::invalidData("multiboot2 info too small");
     }
 
-    auto* prekernel  = &Realms::Core::prekernel;
+    auto* prekernel  = &Realms::Sys::prekernel;
     prekernel->magic = 0x36d7'6289;
 
     auto* resp = reinterpret_cast<Response*>(info->responses);
@@ -52,12 +52,12 @@ Res<> parse(Info* info) {
 
                         default: type = 1; break;
                     }
-                    prekernel->memmap.pushBack((Realms::Core::PrekernelInfo::_MemmapEntry) {
+                    prekernel->memmap.pushBack((Realms::Sys::PrekernelInfo::_MemmapEntry) {
                         .range = {
                             entry->addr,
                             entry->len,
                         },
-                        .type  = (decltype(Realms::Core::PrekernelInfo::_MemmapEntry::type)) type,
+                        .type  = (decltype(Realms::Sys::PrekernelInfo::_MemmapEntry::type)) type,
                     });
                     entry = (MemoryMap::Entry*) ((u8*) entry + mmap->entrySize);
                 }
@@ -88,7 +88,7 @@ extern "C" [[noreturn]] void kinit_multiboot2(multiboot2::Info* info) {
         panic("Failed to resolve boot config");
     }
 
-    if (not Realms::Core::main(0, &Realms::Core::prekernel)) {
+    if (not Realms::Sys::main(0, &Realms::Sys::prekernel)) {
         // BSOD
 
         panic("System exited unexpectedly");

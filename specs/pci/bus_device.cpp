@@ -2,10 +2,11 @@
 #include <pci/bus.h>
 #include <realms/core/api.io.h>
 #include <sdk-logs/logger.h>
+#include <sdk-meta/ranges.h>
 
 namespace Pci {
 
-using namespace Realms::Core;
+using namespace Realms::Sys;
 
 BusDevice::BusDevice()
     : Io::Bus("pci"s),
@@ -66,6 +67,7 @@ Res<Slice<Rc<Io::Dev>>> BusDevice::devices() {
 }
 
 Res<> BusDevice::remove(Rc<Io::Dev> dev) {
+    return Error::notImplemented();
 }
 
 bool BusDevice::check(u8 bus, u8 slot, u8 func) {
@@ -94,14 +96,10 @@ Opt<Rc<Pci::Dev>> BusDevice::create(Id& id) {
         return NONE;
     }
 
-    Opt<Rc<Pci::Dev>> found
-        = foreach (_devices).filter$(it.unwrap() == id).first();
-    if (found) {
-        Rc<Pci::Dev> dev = found.unwrap();
-        return dev;
-    }
-
-    return makeRc<Pci::Dev>(id);
+    return _devices
+         | filter$(it.unwrap() == id)
+         | first()
+         | supply$(makeRc<Pci::Dev>(id));
 }
 
 } // namespace Pci

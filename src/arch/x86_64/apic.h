@@ -2,11 +2,12 @@
 
 #include <acpi/tables.h>
 #include <arch/x86_64/regs.h>
+#include <realms/core/mod.h>
+#include <realms/core/registry.h>
 #include <realms/hal/io.h>
 #include <realms/io/dev.h>
 #include <sdk-meta/opt.h>
 #include <sdk-meta/ptr.h>
-#include <sdk-meta/vec.h>
 
 namespace Realms::Hal::x86_64::Apic {
 
@@ -59,9 +60,7 @@ enum struct Dest {
     Others = (3 << 18)
 };
 
-using Realms::Core::Io::Dev;
-
-struct CoreDevice : public Dev {
+struct CoreDevice : public Core::Io::Dev {
     CoreDevice() : Dev("x86_64-apic-core-device"s, "x86_64/apic/") { }
 };
 
@@ -93,7 +92,7 @@ Res<> out64(usize offset, u64 value);
 
 Slice<Local> units();
 
-struct TimerDevice : public Dev {
+struct TimerDevice : public Core::Io::Dev {
     Local& _local;
     u32    _busSpeed, _irqSrc;
 
