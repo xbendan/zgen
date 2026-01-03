@@ -4,15 +4,14 @@
         "--clang-tidy",
         "--completion-style=bundled",
         "--log=verbose",
-        "--header-insertion=never",
-        "--query-driver=/usr/bin/clang++",
-        "--fallback-missing-in-compile-commands"
+        "--header-insertion=never"
     ],
     "clangd.enable": true,
     "clangd.fallbackFlags": [
-        "-I${workspaceFolder}/libs",
         "-I${workspaceFolder}/src",
-        "-I${workspaceFolder}"
+        "-I${workspaceFolder}",
+        "-std=c++26",
+        "-x c++-module"
     ],
     "C_Cpp.default.cStandard": "c23",
     "C_Cpp.default.cppStandard": "c++23",
@@ -20,6 +19,7 @@
         "-std=c++23"
     ],
     "C_Cpp.default.intelliSenseMode": "clang-x64",
+    "C_Cpp.intelliSenseEngine": "disabled",
     "editor.formatOnSave": true,
     "clang-format.executable": "clang-format",
     "[cpp]": {
@@ -86,4 +86,5 @@
     },
     "C_Cpp.codeAnalysis.clangTidy.useBuildPath": true,
     "makefile.configureOnOpen": false,
+    "clangd.path": "/opt/llvm/21.1.8/bin/clangd"
 }
