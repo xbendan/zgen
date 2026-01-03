@@ -4,7 +4,7 @@
 #include <sdk-meta/res.h>
 #include <sdk-text/str.h>
 
-namespace Realms::Core {
+namespace Realms::Sys {
 
 struct Mod {
     using Registry = Registry<Str, Mod>;
@@ -22,4 +22,4 @@ struct Metadata<Mod> {
     Opt<Rc<Mod>> (*build)();
 };
 
-} // namespace Realms::Core
+} // namespace Realms::Sys

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <realms/io/dev.h>
-#include <realms/mm/buffer.h>
 #include <sdk-io/path.h>
 #include <sdk-io/seek.h>
 #include <sdk-io/traits.h>
@@ -11,7 +10,7 @@
 #include <sdk-meta/time.h>
 #include <sdk-text/str.h>
 
-namespace Realms::Core::Io {
+namespace Realms::Sys::Io {
 
 using Sdk::Io::Path;
 using Sdk::Io::Seek;
@@ -123,10 +122,7 @@ struct File : public Node {
      * @param size 
      * @return Res<usize> 
      */
-    virtual Res<usize> read(FileHandle&         handle,
-                            Seek                whence,
-                            UserOrKernelBuffer& buf,
-                            usize               size);
+    virtual Res<usize> read(FileHandle& handle, Seek whence, Bytes bytes);
 
     /**
      * @brief 
@@ -137,10 +133,7 @@ struct File : public Node {
      * @param size 
      * @return Res<usize> 
      */
-    virtual Res<usize> write(FileHandle&               handle,
-                             Seek                      whence,
-                             UserOrKernelBuffer const& buf,
-                             usize                     size);
+    virtual Res<usize> write(FileHandle& handle, Seek whence, Bytes bytes);
 };
 
 struct Directory : public Node {
@@ -151,4 +144,4 @@ struct Symlink : public Node { };
 
 struct Library : public Node { };
 
-} // namespace Realms::Core::Io
+} // namespace Realms::Sys::Io

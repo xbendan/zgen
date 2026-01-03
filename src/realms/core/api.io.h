@@ -4,8 +4,8 @@
 #include <realms/io/devtree.h>
 #include <sdk-meta/list.h>
 
-namespace Realms::Core {
+namespace Realms::Sys {
 
 Opt<Io::Devtree&> devtree();
 
-} // namespace Realms::Core
+} // namespace Realms::Sys

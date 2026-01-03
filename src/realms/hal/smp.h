@@ -3,7 +3,7 @@
 #include <sdk-meta/res.h>
 #include <sdk-meta/types.h>
 
-namespace Realms::Hal {
+namespace Realms::Sys {
 
 struct Smp {
     virtual Res<usize> count() = 0;
@@ -15,4 +15,4 @@ struct Smp {
     virtual Res<> boot(usize id, void* stack, void (*entry)()) = 0;
 };
 
-} // namespace Realms::Hal
+} // namespace Realms::Sys

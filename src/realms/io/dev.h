@@ -5,7 +5,7 @@
 #include <sdk-meta/types.h>
 #include <sdk-text/str.h>
 
-namespace Realms::Core::Io {
+namespace Realms::Sys::Io {
 
 struct Bus;
 struct Drv;
@@ -82,4 +82,4 @@ struct Dev {
           _status(Status::Disabled) { };
 };
 
-} // namespace Realms::Core::Io
+} // namespace Realms::Sys::Io

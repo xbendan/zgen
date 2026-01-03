@@ -6,7 +6,7 @@
 #include <sdk-meta/types.h>
 #include <sdk-text/str.h>
 
-namespace Realms::Core {
+namespace Realms::Sys {
 
 struct Process;
 
@@ -42,4 +42,4 @@ struct Process final {
     } _program;
 };
 
-} // namespace Realms::Core
+} // namespace Realms::Sys

@@ -6,7 +6,7 @@
 #include <sdk-meta/range.h>
 #include <sdk-meta/res.h>
 
-namespace Realms::Hal {
+namespace Realms::Sys {
 
 // ========================================================================================================================
 //     Start addr         |   Offset   |     End addr          |  Size   | VM area description
@@ -127,4 +127,4 @@ struct UpperHalfMapper {
     }
 };
 
-} // namespace Realms::Hal
+} // namespace Realms::Sys

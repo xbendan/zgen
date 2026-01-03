@@ -6,7 +6,7 @@
 #include <sdk-meta/vec.h>
 #include <sdk-text/str.h>
 
-namespace Realms::Core::Io {
+namespace Realms::Sys::Io {
 
 struct Fs {
     Str           name;
@@ -27,4 +27,4 @@ struct Fs {
     virtual Res<Vec<Str>> listFiles(Path path) = 0;
 };
 
-} // namespace Realms::Core::Io
+} // namespace Realms::Sys::Io

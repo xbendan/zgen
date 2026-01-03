@@ -6,7 +6,7 @@
 #include <sdk-meta/res.h>
 #include <sdk-meta/types.h>
 
-namespace Realms::Hal {
+namespace Realms::Sys {
 
 enum struct PmmFlags : u64 {
     Atomic       = (1 << 0),
@@ -23,7 +23,7 @@ using PmmRange = Range<uflat, struct _PmmRangeTag>;
 struct Pmm {
     virtual ~Pmm() = default;
 
-    virtual Res<PmmRange> alloc(u64 size, Flags<Hal::PmmFlags> flags = {}) = 0;
+    virtual Res<PmmRange> alloc(u64 size, Flags<Sys::PmmFlags> flags = {}) = 0;
 
     virtual Res<> free(PmmRange range) = 0;
 
@@ -32,4 +32,4 @@ struct Pmm {
     virtual Res<> mark(PmmRange range, bool used) = 0;
 };
 
-} // namespace Realms::Hal
+} // namespace Realms::Sys

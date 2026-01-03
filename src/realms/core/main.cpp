@@ -47,7 +47,7 @@ Str BuildDate       = __DATE__ " " __TIME__;
     " | |_) |  / _ \\  / _` | | | | '_ ` _ \\  / __|\n"                        \
     " |  _ <  |  __/ | (_| | | | | | | | | | \\__ \\\n"                        \
     " |_| \\_\\  \\___|  \\__,_| |_| |_| |_| |_| |___/"
-namespace Realms::Core {
+namespace Realms::Sys {
 
 Res<> main(Boot::Info& info) {
     try$(Hal::init());
@@ -84,7 +84,7 @@ Res<> main(Boot::Info& info) {
     return Ok();
 }
 
-} // namespace Realms::Core
+} // namespace Realms::Sys
 
 [[noreturn]] void panic([[maybe_unused]] char const* message) {
     __builtin_unreachable();

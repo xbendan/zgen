@@ -5,9 +5,9 @@
 #include <sdk-meta/range.h>
 #include <sdk-meta/res.h>
 
-namespace Realms::Hal {
+namespace Realms::Sys {
 
-enum struct KmmAllocFlags {
+enum struct KmmFlags {
     USER,
     KERNEL,
     CONTIGUOUS,
@@ -15,17 +15,17 @@ enum struct KmmAllocFlags {
     NO_WAIT, // No interrupt or sleep during allocation
     NO_RETRY // Abort immediately if first allocation fails
 };
-MakeFlags$(KmmAllocFlags);
+MakeFlags$(KmmFlags);
 
 using KmmRange = Range<uflat, struct _KmmRangeTag>;
 
 struct Kmm {
-    virtual ~Kmm() = default;
+    ~Kmm() = default;
 
-    virtual Res<KmmRange> alloc(usize size, Flags<KmmAllocFlags> flags) = 0;
+    Res<KmmRange> alloc(usize size, Flags<KmmFlags> flags);
 
-    virtual Res<> free(uflat addr) = 0;
+    Res<> free(uflat addr);
 
-    virtual Res<> free(KmmRange range) = 0;
+    Res<> free(KmmRange range);
 };
-} // namespace Realms::Hal
+} // namespace Realms::Sys

@@ -9,7 +9,7 @@
 #include <sdk-meta/vec.h>
 #include <sdk-text/str.h>
 
-namespace Realms::Core::Io {
+namespace Realms::Sys::Io {
 
 using Sdk::Io::Seek;
 using Sdk::Io::Whence;
@@ -23,4 +23,4 @@ struct StorDev : public Dev {
     virtual Res<usize> write(Seek seek, Bytes const& buf) = 0;
 };
 
-} // namespace Realms::Core::Io
+} // namespace Realms::Sys::Io

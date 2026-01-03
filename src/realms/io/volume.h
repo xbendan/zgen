@@ -6,7 +6,7 @@
 #include <sdk-meta/uuid.h>
 #include <sdk-text/str.h>
 
-namespace Realms::Core::Io {
+namespace Realms::Sys::Io {
 
 struct Volume {
     Str    name;
@@ -16,4 +16,4 @@ struct Volume {
     Range<usize, struct _LbaRangeTag> range;
 };
 
-} // namespace Realms::Core::Io
+} // namespace Realms::Sys::Io

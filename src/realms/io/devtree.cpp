@@ -1,6 +1,6 @@
 #include <realms/io/devtree.h>
 
-namespace Realms::Core::Io {
+namespace Realms::Sys::Io {
 
 Devtree::Devtree()
     : _root(makeBox<Node>(
@@ -11,7 +11,7 @@ Devtree::Devtree()
       _table(16) {
 }
 
-Devtree::Devtree(InitializerList<Rc<Dev>> devices) : Devtree() {
+Devtree::Devtree(Items<Rc<Dev>> devices) : Devtree() {
     for (auto& dev : devices)
         mount(dev);
 }
@@ -26,4 +26,4 @@ Opt<Rc<Dev>> Devtree::find(Str name) {
     return _table[name].value.mapTo$(it.dev);
 }
 
-} // namespace Realms::Core::Io
+} // namespace Realms::Sys::Io

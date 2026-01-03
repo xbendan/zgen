@@ -8,7 +8,7 @@
 #include <sdk-meta/rc.h>
 #include <sdk-meta/types.h>
 
-namespace Realms::Core {
+namespace Realms::Sys {
 
 struct ReadyQueue {
     virtual ~ReadyQueue() = default;
@@ -49,4 +49,4 @@ struct MultiLevelFeedbackQueue : ReadyQueue {
     Opt<Arc<Thread>> next() override;
 };
 
-} // namespace Realms::Core
+} // namespace Realms::Sys

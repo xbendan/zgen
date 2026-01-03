@@ -6,7 +6,7 @@
 #include <sdk-meta/time.h>
 #include <sdk-meta/types.h>
 
-namespace Realms::Core {
+namespace Realms::Sys {
 
 struct CancellationToken {
     bool _cancelled = false;
@@ -75,4 +75,4 @@ struct Task {
     Future<Ret<Fn>> start();
 };
 
-} // namespace Realms::Core
+} // namespace Realms::Sys

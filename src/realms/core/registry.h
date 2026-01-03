@@ -6,7 +6,7 @@
 #include <sdk-meta/res.h>
 #include <sdk-text/str.h>
 
-namespace Realms::Core {
+namespace Realms::Sys {
 
 template <typename K, typename V>
 using DictionaryStrategy = Meta::Dict<K, V>;
@@ -43,4 +43,4 @@ struct Registration {
     }();
 };
 
-} // namespace Realms::Core
+} // namespace Realms::Sys

@@ -4,7 +4,7 @@
 #include <sdk-meta/box.h>
 #include <sdk-meta/lock.h>
 
-namespace Realms::Core::Io {
+namespace Realms::Sys::Io {
 
 struct Devtree final {
     struct Node {
@@ -21,7 +21,7 @@ struct Devtree final {
 
     Devtree();
 
-    Devtree(InitializerList<Rc<Dev>> devices);
+    Devtree(Items<Rc<Dev>> devices);
 
     Node& root();
 
@@ -39,4 +39,4 @@ struct Devtree final {
     Opt<Rc<Dev>> find(Str name);
 };
 
-} // namespace Realms::Core::Io
+} // namespace Realms::Sys::Io

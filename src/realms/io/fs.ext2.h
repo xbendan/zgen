@@ -2,8 +2,8 @@
 
 #include <realms/io/fs.h>
 
-namespace Realms::Core::Io {
+namespace Realms::Sys::Io {
 
 struct Ext2Fs : public Fs { };
 
-} // namespace Realms::Core::Io
+} // namespace Realms::Sys::Io

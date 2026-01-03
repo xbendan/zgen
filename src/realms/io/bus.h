@@ -7,7 +7,7 @@
 #include <sdk-meta/types.h>
 #include <sdk-text/str.h>
 
-namespace Realms::Core::Io {
+namespace Realms::Sys::Io {
 
 struct Bus {
     Str       _name;
@@ -28,4 +28,4 @@ struct Bus {
     virtual Res<> remove(Rc<Dev> dev) = 0;
 };
 
-} // namespace Realms::Core::Io
+} // namespace Realms::Sys::Io

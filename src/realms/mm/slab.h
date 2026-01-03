@@ -4,4 +4,4 @@
 #include <realms/hal/pmm.h>
 #include <sdk-meta/list.h>
 
-namespace Realms::Core { } // namespace Realms::Core
+namespace Realms::Sys { } // namespace Realms::Sys

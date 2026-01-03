@@ -5,7 +5,7 @@
 #include <sdk-meta/ranges.h>
 #include <sdk-meta/res.h>
 
-namespace Realms::Core {
+namespace Realms::Sys {
 
 Res<> validateAndDumpInfo(u64 magic, Boot::Info& info);
 
@@ -17,4 +17,4 @@ Res<usize> setupMultitasking();
 
 Res<> main(Boot::Info&);
 
-} // namespace Realms::Core
+} // namespace Realms::Sys
