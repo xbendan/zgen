@@ -1,18 +1,18 @@
-#pragma once
+module;
 
-#include <sdk-meta/buf.h>
-#include <sdk-meta/cursor.h>
-#include <sdk-meta/types.h>
+export module sdk.text:rune;
 
-namespace Sdk::Text {
+import sdk;
+
+export namespace Realms::Text {
 
 using Rune = u32;
 
-static constexpr Rune NewLine        = U'\n';
-static constexpr Rune CarriageReturn = U'\r';
-static constexpr Rune Tab            = U'\t';
-static constexpr Rune BackSpace      = U'\b';
-static constexpr Rune Unknown        = U'�';
+constexpr Rune NewLine        = U'\n';
+constexpr Rune CarriageReturn = U'\r';
+constexpr Rune Tab            = U'\t';
+constexpr Rune BackSpace      = U'\b';
+constexpr Rune Unknown        = U'�';
 
 template <typename T>
 concept StaticEncoding = requires(T                         t,
@@ -20,18 +20,18 @@ concept StaticEncoding = requires(T                         t,
                                   typename T::Unit          u,
                                   Cursor<typename T::Unit>& c,
                                   Cursor<typename T::Unit>& m) {
-    { T::unitLen(u) } -> Meta::Same<usize>;
-    { T::runeLen(r) } -> Meta::Same<usize>;
-    { T::decodeUnit(r, c) } -> Meta::Same<bool>;
-    { T::encodeUnit(Rune {}, m) } -> Meta::Same<bool>;
+    { T::unitLen(u) } -> Same<usize>;
+    { T::runeLen(r) } -> Same<usize>;
+    { T::decodeUnit(r, c) } -> Same<bool>;
+    { T::encodeUnit(Rune {}, m) } -> Same<bool>;
 };
 
 template <typename U, usize N>
 struct _Multiple {
-    using Inner = U;
-    using Unit  = U;
+    using E    = U;
+    using Unit = U;
 
-    InlineBuf<Unit, N> _buf {};
+    Meta::InlineBuf<Unit, N> _buf {};
 
     [[gnu::always_inline]] void put(Unit u) { _buf.emplace(_buf.len(), u); }
 
@@ -52,12 +52,18 @@ struct _Multiple {
     [[gnu::always_inline]] constexpr usize len() const { return _buf.len(); }
 
     [[gnu::always_inline]] constexpr usize rem() const { return N - len(); }
+
+    [[gnu::always_inline]] constexpr auto begin() { return _buf.buf(); }
+
+    [[gnu::always_inline]] constexpr auto end() {
+        return _buf.buf() + _buf.len();
+    }
 };
 
 template <typename U>
 struct _Single {
-    using Inner = U;
-    using Unit  = U;
+    using E    = U;
+    using Unit = U;
 
     Unit _buf;
 
@@ -80,6 +86,10 @@ struct _Single {
     [[gnu::always_inline]] constexpr Unit const* buf() const { return &_buf; }
 
     [[gnu::always_inline]] constexpr usize len() const { return 1; }
+
+    [[gnu::always_inline]] constexpr auto begin() { return &_buf; }
+
+    [[gnu::always_inline]] constexpr auto end() { return &_buf + 1; }
 };
 
 template <typename T, typename U>
@@ -179,7 +189,7 @@ struct Utf8 {
     }
 };
 
-static inline Utf8 UTF8 [[maybe_unused]];
+inline Utf8 UTF8 [[maybe_unused]];
 
 static_assert(StaticEncoding<Utf8>);
 
@@ -247,7 +257,7 @@ struct Utf16 {
     }
 };
 
-static inline Utf16 UTF16 [[maybe_unused]];
+inline Utf16 UTF16 [[maybe_unused]];
 
 static_assert(StaticEncoding<Utf16>);
 
@@ -275,7 +285,7 @@ struct Utf32 {
     }
 };
 
-static inline Utf32 UTF32 [[maybe_unused]];
+inline Utf32 UTF32 [[maybe_unused]];
 
 static_assert(StaticEncoding<Utf32>);
 
@@ -314,7 +324,7 @@ struct Ascii {
     }
 };
 
-static inline Ascii ASCII [[maybe_unused]];
+inline Ascii ASCII [[maybe_unused]];
 
 static_assert(StaticEncoding<Ascii>);
 
@@ -351,4 +361,14 @@ struct EAscii {
     }
 };
 
-} // namespace Sdk::Text
+#if defined(__sdk_encoding_utf8) or not defined(__sdk_encoding)
+using Encoding = Text::Utf8;
+#elif defined(__sdk_encoding_utf16)
+using Encoding = Text::Utf16;
+#elif defined(__sdk_encoding_ascii)
+using Encoding = Text::Ascii;
+#else
+#    error "Unknown system encoding"
+#endif
+
+} // namespace Realms::Text

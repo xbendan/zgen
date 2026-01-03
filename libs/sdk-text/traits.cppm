@@ -1,8 +1,10 @@
-#pragma once
+module;
 
-#include <sdk-text/rune.h>
+export module sdk.text:traits;
 
-namespace Sdk::Text {
+import :rune;
+
+export namespace Realms::Text {
 
 constexpr bool isAscii(Rune rune) {
     return rune <= 0x7F;
@@ -150,4 +152,4 @@ constexpr Rune parseAsciiHexDigit(Rune rune) {
     panic("invalid hexadecimal digit");
 }
 
-} // namespace Sdk::Text
+} // namespace Realms::Text

@@ -1,22 +1,22 @@
-#pragma once
+module;
 
-#include <sdk-meta/iter.h>
-#include <sdk-meta/str.h>
-#include <sdk-text/_defs.h>
-#include <sdk-text/rune.h>
+export module sdk.text:string;
 
-namespace Sdk::Text {
+import sdk;
+import :rune;
 
-template <StaticEncoding E, typename U = typename E::Unit>
+export namespace Realms::Text {
+
+template <StaticEncoding En, typename U = typename En::Unit>
 struct _Str : Slice<U> {
-    using Encoding = E;
+    using Encoding = En;
+    using E        = U;
     using Unit     = U;
-    using Inner    = U;
 
     [[gnu::always_inline]] constexpr _Str() = default;
 
     [[gnu::always_inline]] constexpr _Str(U const* cstr)
-        requires(Meta::Same<U, char>)
+        requires(Same<U, char>)
         : Slice<U>(cstr, strlen(cstr)) { }
 
     [[gnu::always_inline]] constexpr _Str(U const* buf, usize len)
@@ -29,13 +29,13 @@ struct _Str : Slice<U> {
         : Slice<U>(other.buf(), other.len()) { }
 
     [[gnu::always_inline]] constexpr auto operator<=>(U const* cstr) const
-        requires(Meta::Same<U, char>)
+        requires(Same<U, char>)
     {
         return *this <=> _Str(cstr);
     }
 
     [[gnu::always_inline]] constexpr bool operator==(U const* cstr) const
-        requires(Meta::Same<U, char>)
+        requires(Same<U, char>)
     {
         return *this == _Str(cstr);
     }
@@ -44,20 +44,30 @@ struct _Str : Slice<U> {
         return this->_len > 0;
     }
 
-    [[gnu::always_inline]] constexpr auto it() {
-        Cursor<U> cursor(*this);
-        return Iter([cursor] mutable -> Opt<Rune> {
-            if (cursor.ended()) {
-                return None {};
-            }
+    struct It {
+        Cursor<U> _cursor;
+        Rune      r;
 
-            Rune r;
-            return E::decodeUnit(r, cursor) ? r : Text::Unknown;
-        });
-    }
+        [[gnu::always_inline]] constexpr It(_Str const& str) : _cursor(str) { }
+
+        [[gnu::always_inline]] constexpr bool operator!=(None) {
+            return not _cursor.ended();
+        }
+
+        [[gnu::always_inline]] constexpr It& operator++() {
+            r = En::decodeUnit(r, _cursor) ? r : Text::Unknown;
+            return *this;
+        }
+
+        [[gnu::always_inline]] constexpr Rune operator*() { return r; }
+    };
+
+    [[gnu::always_inline]] constexpr It begin() const { return It(*this); }
+
+    [[gnu::always_inline]] constexpr None end() const { return None {}; }
 };
 
-using Str = _Str<Realms::Core::Encoding>;
+using Str = _Str<Encoding>;
 
 template <StaticEncoding E>
 struct _String {
@@ -73,7 +83,7 @@ struct _String {
     [[gnu::always_inline]] constexpr _String() = delete;
 
     [[gnu::always_inline]] constexpr _String(Unit const* buf, usize len)
-        requires(Meta::Same<Unit, char>)
+        requires(Same<Unit, char>)
         : _len(len) {
         if (_buf == nullptr or len == 0) [[unlikely]] {
             panic("String: cannot create an empty string with a buffer");
@@ -88,7 +98,7 @@ struct _String {
     }
 
     [[gnu::always_inline]] constexpr _String(Unit const* cstr)
-        requires(Meta::Same<Unit, char>)
+        requires(Same<Unit, char>)
         : _String(cstr, strlen(cstr)) { }
 
     [[gnu::always_inline]] constexpr _String(_Str<E> str)
@@ -101,13 +111,13 @@ struct _String {
         : _String(other._buf, other._len) { }
 
     [[gnu::always_inline]] _String(_String&& other)
-        : _buf(Meta::exchange(other._buf, nullptr)),
-          _len(Meta::exchange(other._len, 0)) { }
+        : _buf(exchange(other._buf, nullptr)),
+          _len(exchange(other._len, 0)) { }
 
     ~_String() {
         if (_buf) {
             _len = 0;
-            delete[] Meta::exchange(_buf, nullptr);
+            delete[] exchange(_buf, nullptr);
         }
     }
 
@@ -117,8 +127,8 @@ struct _String {
     }
 
     [[gnu::always_inline]] _String& operator=(_String&& other) {
-        Meta::swap(_buf, other._buf);
-        Meta::swap(_len, other._len);
+        swap(_buf, other._buf);
+        swap(_len, other._len);
         return *this;
     }
 
@@ -139,13 +149,13 @@ struct _String {
     [[gnu::always_inline]] usize len() const { return _len; }
 
     [[gnu::always_inline]] auto operator<=>(Unit const* cstr) const
-        requires(Meta::Same<Unit, char>)
+        requires(Same<Unit, char>)
     {
         return str() <=> _Str<E>(cstr);
     }
 
     [[gnu::always_inline]] bool operator==(Unit const* cstr) const
-        requires(Meta::Same<Unit, char>)
+        requires(Same<Unit, char>)
     {
         return str() == _Str<E>(cstr);
     }
@@ -155,13 +165,13 @@ struct _String {
     }
 };
 
-using String = _String<Realms::Core::Encoding>;
+using String = _String<Encoding>;
 
-} // namespace Sdk::Text
+} // namespace Realms::Text
 
-using Sdk::Text::Str;
-using Sdk::Text::String;
+export using Realms::Text::Str;
+export using Realms::Text::String;
 
-inline constexpr Str operator""s(char const* cstr, usize len) {
+export inline constexpr Str operator""s(char const* cstr, usize len) {
     return { cstr, len };
 }

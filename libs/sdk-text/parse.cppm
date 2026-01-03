@@ -1,18 +1,20 @@
-#pragma once
+module;
 
-#include <sdk-meta/opt.h>
-#include <sdk-text/rune.h>
-#include <sdk-text/runes.h>
-#include <sdk-text/traits.h>
+export module sdk.text:parse;
 
-namespace Sdk::Text {
+import sdk;
+import :rune;
+import :runes;
+import :traits;
+
+export namespace Realms::Text {
 
 struct AtoxOptions {
     u8   base     = 10;
     bool allowExp = true;
 };
 
-static inline Opt<u8> _parseDigit(Rune rune, AtoxOptions options = {}) {
+inline Opt<u8> _parseDigit(Rune rune, AtoxOptions options = {}) {
     rune      = toAsciiLower(rune);
     u8 result = 255;
 
@@ -86,4 +88,4 @@ Opt<isize> atoi(_Runes<E>& s, AtoxOptions options = {}) {
     return result;
 }
 
-} // namespace Sdk::Text
+} // namespace Realms::Text

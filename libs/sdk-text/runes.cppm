@@ -1,24 +1,23 @@
-#pragma once
+module;
 
-#include <sdk-meta/callable.h>
-#include <sdk-meta/cursor.h>
-#include <sdk-meta/defer.h>
-#include <sdk-meta/types.h>
-#include <sdk-text/rune.h>
-#include <sdk-text/str.h>
+export module sdk.text:runes;
 
-namespace Sdk::Text {
+import sdk;
+import :rune;
+import :string;
 
-template <StaticEncoding E>
+export namespace Realms::Text {
+
+template <StaticEncoding En>
 struct _Runes {
-    using Encoding = E;
-    using Unit     = typename E::Unit;
-    using Inner    = Rune;
+    using Encoding = En;
+    using Unit     = typename En::Unit;
+    using E        = Rune;
 
     Cursor<Unit> _cur;
     Cursor<Unit> _begin;
 
-    _Runes(_Str<E> str) : _cur(str) { }
+    _Runes(_Str<En> str) : _cur(str) { }
 
     bool ended() const { return _cur.ended(); }
 
@@ -27,7 +26,7 @@ struct _Runes {
             return '\0';
 
         Rune r {};
-        return E::decodeUnit(r, _cur) ? r : Text::Unknown;
+        return En::decodeUnit(r, _cur) ? r : Text::Unknown;
     }
 
     Rune next(usize n) {
@@ -46,7 +45,7 @@ struct _Runes {
         usize result = 0;
         while (curr.rem()) {
             Rune r;
-            if (E::decodeUnit(r, curr))
+            if (En::decodeUnit(r, curr))
                 result++;
         }
         return result;
@@ -58,12 +57,12 @@ struct _Runes {
 
         Rune r {};
         auto curr = _cur;
-        return E::decodeUnit(r, curr) ? r : Text::Unknown;
+        return En::decodeUnit(r, curr) ? r : Text::Unknown;
     }
 
-    _Str<E> toStr() const { return { _begin, _cur }; }
+    _Str<En> toStr() const { return { _begin, _cur }; }
 
-    _Str<E> toStr(usize n) const {
+    _Str<En> toStr(usize n) const {
         auto begin = _cur;
         next(n);
         return { begin, _cur };
@@ -77,7 +76,7 @@ struct _Runes {
         return false;
     }
 
-    bool skip(_Str<E> str) {
+    bool skip(_Str<En> str) {
         auto def = defer();
         for (auto r : str.it())
             if (next() != r)
@@ -98,7 +97,7 @@ struct _Runes {
     }
 
     /// Keep advancing the cursor while the current rune is in `str`.
-    bool eat(_Str<E> str) {
+    bool eat(_Str<En> str) {
         bool result = false;
         if (skip(str)) {
             result = true;
@@ -113,7 +112,7 @@ struct _Runes {
         return *this;
     }
 
-    _Str<E> end() { return { _begin, _cur }; }
+    _Str<En> end() { return { _begin, _cur }; }
 
     auto defer() {
         return ArmedDefer([&, saved = *this] { *this = saved; });
@@ -122,22 +121,22 @@ struct _Runes {
 
 using Runes = _Runes<Utf8>;
 
-} // namespace Sdk::Text
+} // namespace Realms::Text
 
-template <Sliceable S>
-    requires(Sdk::Text::StaticEncoding<typename S::Encoding>)
-auto iter(S const& slice) {
-    using E = typename S::Encoding;
-    using U = typename E::Unit;
+// template <Sliceable S>
+//     requires(Realms::Text::StaticEncoding<typename S::Encoding>)
+// auto iter(S const& slice) {
+//     using E = typename S::Encoding;
+//     using U = typename E::Unit;
 
-    Cursor<U> cursor(slice);
-    return Iter([cursor] mutable -> Opt<Sdk::Text::Rune> {
-        if (cursor.ended()) {
-            return None {};
-        }
+//     Cursor<U> cursor(slice);
+//     return Iter([cursor] mutable -> Opt<Sdk::Text::Rune> {
+//         if (cursor.ended()) {
+//             return None {};
+//         }
 
-        Sdk::Text::Rune r;
-        return E::decodeUnit(r, cursor) ? Opt<Sdk::Text::Rune>(r)
-                                        : Opt<Sdk::Text::Rune>();
-    });
-}
+//         Sdk::Text::Rune r;
+//         return E::decodeUnit(r, cursor) ? Opt<Sdk::Text::Rune>(r)
+//                                         : Opt<Sdk::Text::Rune>();
+//     });
+// }
