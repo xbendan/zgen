@@ -1,0 +1,192 @@
+module;
+
+export module sdk:slice;
+
+import :hash;
+import :traits;
+import :types;
+import :utility;
+
+export template <typename T, typename U = typename T::E>
+concept Sliceable = requires(T const& t) {
+    typename T::E;
+    { t.len() } -> Same<usize>;
+    { t.buf() } -> Same<U const*>;
+    { t[0uz] } -> Same<U const&>;
+};
+
+export template <Sliceable T, Sliceable U>
+    requires Comparable<typename T::E, typename U::E>
+constexpr auto operator<=>(T const& lhs, U const& rhs)
+    -> decltype(lhs[0uz] <=> rhs[0uz]) {
+    for (usize i = 0; i < lhs.len() && i < rhs.len(); i++) {
+        if (auto cmp = lhs[i] <=> rhs[i]; cmp != 0) {
+            return cmp;
+        }
+    }
+    return lhs.len() <=> rhs.len();
+}
+
+export template <Sliceable T, Sliceable U>
+    requires Equatable<typename T::E, typename U::E>
+constexpr auto operator==(T const& lhs, U const& rhs) -> bool {
+    if (lhs.len() != rhs.len()) {
+        return false;
+    }
+
+    for (usize i = 0; i < lhs.len(); i++) {
+        if (!(lhs[i] == rhs[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+
+export template <Sliceable T>
+constexpr u64 hash(T const& slice)
+    requires(not requires(T const t) {
+        { t.hash() } -> Same<u64>;
+    })
+{
+    u64 res = ::hash();
+    for (usize i = 0; i < slice.len(); i++) {
+        res = hash(res, slice.buf()[i]);
+    }
+    return res;
+}
+
+export template <typename T>
+struct Slice {
+    using E = T;
+
+    T const* _buf {};
+    usize    _len {};
+
+    static constexpr Slice nullterminated(T const* buf) {
+        usize len = 0;
+        while (buf[len])
+            len++;
+        return { buf, len };
+    }
+
+    static constexpr Slice nullterminated(T const* buf, usize maxLen) {
+        usize len = 0;
+        while (buf[len] and len < maxLen)
+            len++;
+        return { buf, len };
+    }
+
+    constexpr Slice() = default;
+
+    constexpr Slice(T const* buf, usize len) : _buf(buf), _len(len) { }
+
+    constexpr Slice(T const* begin, T const* end)
+        : _buf(begin),
+          _len(end - begin) { }
+
+    constexpr Slice(Sliceable<T> auto const& other)
+        : _buf(other.buf()),
+          _len(other.len()) { }
+
+    constexpr T const& operator[](usize i) const {
+        if (i >= _len) [[unlikely]] {
+            panic("Slice::operator[]: index out of bounds: {} >= {}");
+        }
+        return _buf[i];
+    }
+
+    constexpr T& operator[](usize i) {
+        if (i >= _len) [[unlikely]] {
+            panic("Slice::operator[]: index out of bounds: {} >= {}");
+        }
+        return const_cast<T&>(_buf[i]);
+    }
+
+    constexpr T const* begin() const { return _buf; }
+
+    constexpr T const* end() const { return _buf + _len; }
+
+    constexpr T const* buf() const { return _buf; }
+
+    constexpr T* buf() { return const_cast<T*>(_buf); }
+
+    constexpr usize len() const { return _len; }
+
+    template <typename U>
+    constexpr Slice<U> cast() const {
+        return { (U const*) _buf, _len };
+    }
+
+    constexpr explicit operator bool() const noexcept { return _len > 0; }
+};
+
+export using Bytes        = Slice<byte>;
+export using CharSequence = Slice<char>;
+
+static_assert(Sliceable<Bytes>);
+
+export constexpr auto slice(Sliceable auto const& s, usize begin, usize end)
+    -> Slice<typename RemoveCvRef<decltype(s)>::E> {
+    if (begin > end || end > s.len()) [[unlikely]] {
+        panic("slice: invalid slice indices: {}..{} for length {}");
+        //   begin,
+        //   end,
+        //   s.len());
+    }
+    return { s.buf() + begin, end - begin };
+}
+
+export constexpr auto slice(Sliceable auto const& s, usize begin = 0)
+    -> Slice<typename RemoveCvRef<decltype(s)>::E> {
+    return slice(s, begin, s.len());
+}
+
+export constexpr auto begin(Sliceable auto const& s) {
+    return s.buf();
+}
+
+export constexpr auto end(Sliceable auto const& s) {
+    return s.buf() + s.len();
+}
+
+export constexpr usize len(Sliceable auto const& s) {
+    return s.len();
+}
+
+export constexpr bool isEmpty(Sliceable auto const& s) {
+    return s.len() == 0;
+}
+
+export constexpr auto first(Sliceable auto const& s) -> decltype(s[0uz]) {
+    if (s.len() == 0) [[unlikely]] {
+        panic("Slice::first: slice is empty");
+    }
+    return s[0uz];
+}
+
+export constexpr auto last(Sliceable auto const& s) -> decltype(s[0uz]) {
+    if (s.len() == 0) [[unlikely]] {
+        panic("Slice::last: slice is empty");
+    }
+    return s[s.len() - 1];
+}
+
+export template <Sliceable S>
+Bytes bytes(S const& s) {
+    return { reinterpret_cast<byte const*>(s.buf()),
+             s.len() * sizeof(typename S::E) };
+};
+
+export template <typename T>
+constexpr void reverse(Slice<T> slice) {
+    for (usize i = 0; i < slice.len() / 2; i++) {
+        ::swap(slice[i], slice[slice.len() - 1 - i]);
+    }
+}
+
+export template <typename T>
+constexpr void fill(Slice<T> slice, T value) {
+    for (usize i = 0; i < slice.len(); i++) {
+        slice[i] = value;
+    }
+}

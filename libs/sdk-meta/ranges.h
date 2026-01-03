@@ -45,6 +45,7 @@ enum class Pipeline {
     Peek,
     Chunk,
     Split,
+    Concat,
     Flatten,
     Readonly,
     Cartesian,
@@ -63,6 +64,9 @@ enum class Pipeline {
     First,
     Last,
     ForEach,
+
+    // extensions
+    Supply
 };
 
 static_assert(Ranges<Arrays<int>>); // Test
@@ -638,6 +642,62 @@ struct View<Pipeline::Split, Rn, Fn> {
     [[gnu::always_inline]] auto end() { return NONE; }
 };
 
+// MARK: - [Concat]
+
+template <Ranges Rn, Ranges Rn2>
+struct View<Pipeline::Concat, Rn, Rn2> {
+    using E = typename Rn::E;
+    Rn  _range1;
+    Rn2 _range2;
+
+    struct _ {
+        using B1 = decltype(::declval<Rn>().begin());
+        using B2 = decltype(::declval<Rn2>().begin());
+        using R  = Opt<E>;
+        using V  = E;
+
+        B1   _curr1;
+        B2   _curr2;
+        bool _inFirst = true;
+
+        [[gnu::always_inline]] constexpr bool operator!=(None) {
+            if (_inFirst) {
+                if (_curr1 != NONE) {
+                    return true;
+                }
+                _inFirst = false;
+            }
+            return _curr2 != NONE;
+        }
+
+        [[gnu::always_inline]] constexpr _& operator++() {
+            if (_inFirst) {
+                ++_curr1;
+            } else {
+                ++_curr2;
+            }
+            return *this;
+        }
+
+        [[gnu::always_inline]] constexpr R operator*() {
+            if (_inFirst) {
+                return _curr1 != NONE ? *_curr1 : NONE;
+            }
+            return _curr2 != NONE ? *_curr2 : NONE;
+        }
+    };
+
+    [[gnu::always_inline]] constexpr View(Rn range1, Rn2 range2)
+        : _range1(::move(range1)),
+          _range2(::move(range2)) { }
+
+    [[gnu::always_inline]] auto begin() {
+        return _ { _range1.begin(), _range2.begin() };
+    }
+
+    [[gnu::always_inline]] auto end() { return NONE; }
+};
+
 // MARK: - [Flatten]
 
 template <Ranges Rn>
@@ -861,10 +921,12 @@ template <typename Fn>
 struct Consume<Pipeline::First, Fn> {
     Fn _func;
 
-    [[gnu::always_inline]] constexpr Consume(Fn func) : _func(func) { }
+    [[gnu::always_inline]] constexpr Consume(Fn&& func)
+        : _func(::move(func)) { }
 
     template <Ranges Rn>
-    [[gnu::always_inline]] constexpr auto operator()(Rn&& range) {
+    [[gnu::always_inline]] constexpr auto operator()(Rn&& range)
+        -> decltype(*::declval<Rn>().begin()) {
         for (auto it : range) {
             if (_func(*it)) {
                 return *it;
@@ -898,7 +960,7 @@ template <typename Fn>
 struct Consume<Pipeline::ForEach, Fn> {
     Fn _func;
 
-    [[gnu::always_inline]] constexpr Consume(Fn func) : _func(func) { }
+    [[gnu::always_inline]] constexpr Consume(Fn&& func) : _func(func) { }
 
     template <Ranges Rn>
     [[gnu::always_inline]] constexpr void operator()(Rn&& range) {
@@ -906,6 +968,11 @@ struct Consume<Pipeline::ForEach, Fn> {
             _func(*it);
         }
     }
+};
+
+template <typename Fn>
+struct Consume<Pipeline::Supply, Fn> {
+    Fn _func;
 };
 
 // MARK: - #-- Builders:
@@ -991,15 +1058,19 @@ constexpr auto last() {
 }
 
 constexpr auto first(auto&& func) {
-    return Consume<Pipeline::First, decltype(func)> { func };
+    return Consume<Pipeline::First, decltype(func)> { ::move(func) };
 }
 
 constexpr auto last(auto&& func) {
-    return Consume<Pipeline::Last, decltype(func)> { func };
+    return Consume<Pipeline::Last, decltype(func)> { ::move(func) };
 }
 
 constexpr auto forEach(auto&& func) {
-    return Consume<Pipeline::ForEach, decltype(func)> { func };
+    return Consume<Pipeline::ForEach, decltype(func)> { ::move(func) };
+}
+
+constexpr auto supply(auto&& func) {
+    return Consume<Pipeline::Supply, decltype(func)> { ::move(func) };
 }
 
 #if defined(__meta_enable_ranges_deduction)
@@ -1013,12 +1084,37 @@ constexpr auto forEach(auto&& func) {
 #    define peek$(expr)    peek([&](auto const& it) { expr; })
 #    define forEach$(expr) forEach([&](auto const& it) { expr; })
 #    define apply$(expr)   forEach([&](auto const& it) { expr; })
+#    define first$(expr)   first([&](auto& it) -> bool { return expr; })
+#    define last$(expr)    last([&](auto& it) -> bool { return expr; })
 #    define exists$()      first()
+#    define supply$(expr)  supply([&] -> decltype(auto) { return expr; })
 #endif
 
 // MARK: - #-- Operands:
 
-constexpr auto operator+(Ranges auto const& r1, Ranges auto const& r2) {
+constexpr auto operator|(Ranges auto const& r1, Ranges auto const& r2)
+    requires(Meta::Same<typename RemoveCvRef<decltype(r1)>::E,
+                        typename RemoveCvRef<decltype(r2)>::E>)
+{
+    return View<Pipeline::Concat,
+                RemoveCvRef<decltype(r1)>,
+                RemoveCvRef<decltype(r2)>> { r1, r2 };
+}
+
+template <Sliceable S, Pipeline P, typename T>
+constexpr auto operator|(S s, Closure<P, T> closure) {
+    return View<Pipeline::Owned, Arrays<typename RemoveCvRef<S>::E>, None> {
+        Arrays<typename RemoveCvRef<S>::E> { s.begin(), s.end() }
+    } | closure;
+}
+
+template <Sliceable S, Pipeline P, typename T>
+constexpr auto operator|(S s, Consume<P, T> consume) {
+    auto view
+        = View<Pipeline::Owned, Arrays<typename RemoveCvRef<S>::E>, None> {
+              Arrays<typename RemoveCvRef<S>::E> { s.begin(), s.end() }
+    };
+    return consume(view);
 }
 
 template <Sequence S, Pipeline P, typename T>
@@ -1112,7 +1208,21 @@ constexpr auto range(T start, T end, T step = { 1 }) {
         }
     };
 
-    return _ { start, end, step };
+    struct Rn {
+        using E = T;
+
+        T _start;
+        T _end;
+        T _step;
+
+        [[gnu::always_inline]] constexpr auto begin() {
+            return _ { _start, _end, _step };
+        }
+
+        [[gnu::always_inline]] constexpr auto end() { return NONE; }
+    };
+
+    return Rn { start, end, step };
 }
 
 template <typename T>
@@ -1170,6 +1280,12 @@ constexpr auto operator|(Opt<T> opt, Consume<Pipeline::First, None>) -> Opt<T> {
     return opt._present;
 }
 
+template <typename T, typename Fn>
+constexpr auto operator|(Opt<T> opt, Consume<Pipeline::Supply, Fn> consume)
+    -> T {
+    return opt.orElse(consume._func);
+}
+
 } // namespace Meta::Ranges
 
 #if defined(__meta_enable_global_namespace)
@@ -1181,6 +1297,7 @@ using Meta::Ranges::any;
 using Meta::Ranges::average;
 using Meta::Ranges::filter;
 using Meta::Ranges::first;
+using Meta::Ranges::forEach;
 using Meta::Ranges::index;
 using Meta::Ranges::last;
 using Meta::Ranges::max;
@@ -1197,6 +1314,8 @@ using Meta::Ranges::single;
 using Meta::Ranges::skip;
 using Meta::Ranges::sum;
 using Meta::Ranges::take;
+
+using Meta::Ranges::supply;
 #endif
 
 // template <typename R = Range<usize>>

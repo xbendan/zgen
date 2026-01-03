@@ -1,5 +1,6 @@
 #pragma once
 
+#include <sdk-meta/manual.h>
 #include <sdk-meta/opt.h>
 #include <sdk-meta/types.h>
 
@@ -10,7 +11,7 @@ struct Queue { };
 
 template <typename T, usize Capacity>
 struct CircularQueue {
-    using Inner = T;
+    using E = T;
 
     Manual<T> _buf[Capacity];
     usize     _size;
