@@ -1,30 +1,30 @@
-#pragma once
+module;
 
-#include <sdk-io/seek.h>
-#include <sdk-meta/res.h>
-#include <sdk-meta/slice.h>
-#include <sdk-meta/traits.h>
+export module sdk.io:traits;
 
-namespace Sdk::Io {
+import sdk;
+import :seek;
+
+export namespace Realms::Io {
 
 template <typename T>
 concept Writable = requires(T& writer, Bytes bytes) {
-    { writer.write(bytes) } -> Meta::Same<Res<usize>>;
+    { writer.write(bytes) } -> Same<Res<usize>>;
 };
 
 template <typename T>
 concept Readable = requires(T& reader, Bytes bytes) {
-    { reader.read(bytes) } -> Meta::Same<Res<usize>>;
+    { reader.read(bytes) } -> Same<Res<usize>>;
 };
 
 template <typename T>
 concept Seekable = requires(T& seeker, Seek seek) {
-    { seeker.seek(seek) } -> Meta::Same<Res<usize>>;
+    { seeker.seek(seek) } -> Same<Res<usize>>;
 };
 
 template <typename T>
 concept Flushable = requires(T& flusher) {
-    { flusher.flush() } -> Meta::Same<Res<>>;
+    { flusher.flush() } -> Same<Res<>>;
 };
 
 template <typename T>
@@ -75,4 +75,4 @@ struct Flusher {
 
 static_assert(Flushable<Flusher>);
 
-} // namespace Sdk::Io
+} // namespace Realms::Io

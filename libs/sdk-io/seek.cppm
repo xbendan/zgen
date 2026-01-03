@@ -1,8 +1,10 @@
-#pragma once
+module;
 
-#include <sdk-meta/types.h>
+export module sdk.io:seek;
 
-namespace Sdk::Io {
+import sdk;
+
+export namespace Realms::Io {
 
 enum struct Whence {
     BEGIN,
@@ -41,4 +43,4 @@ struct Seek {
     bool operator==(Whence const& other) const { return whence == other; }
 };
 
-} // namespace Sdk::Io
+} // namespace Realms::Io

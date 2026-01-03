@@ -1,10 +1,12 @@
-#pragma once
+module;
 
-#include <sdk-io/path.h>
-#include <sdk-meta/opt.h>
-#include <sdk-text/str.h>
+export module sdk.io:url;
 
-namespace Sdk::Io {
+import sdk;
+import sdk.text;
+import :path;
+
+namespace Realms::Io {
 
 struct Url {
     String   scheme;
@@ -17,4 +19,4 @@ struct Url {
 };
 static_assert(sizeof(Url) == 112);
 
-} // namespace Sdk::Io
+} // namespace Realms::Io

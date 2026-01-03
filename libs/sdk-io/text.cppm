@@ -1,29 +1,31 @@
-#pragma once
+module;
 
-#include <sdk-io/traits.h>
-#include <sdk-text/_defs.h>
-#include <sdk-text/rune.h>
-#include <sdk-text/str.h>
+#include <sdk-meta/_macros.h>
 
-namespace Sdk::Io {
+export module sdk.io:text;
 
-using Sdk::Text::_Str;
-using Sdk::Text::Rune;
-using Sdk::Text::StaticEncoding;
+import sdk.text;
+import :traits;
+
+export namespace Realms::Io {
+
+using Text::_Str;
+using Text::Rune;
+using Text::StaticEncoding;
 
 struct TextWriter : Writer, Flusher {
     using Writer::write;
 
     template <StaticEncoding E>
     Res<> writeStr(_Str<E> str) {
-        for (auto rune : foreach (str))
+        for (auto rune : str)
             try$(writeRune(rune));
 
         return Ok();
     }
 
     Res<> writeStr(char const* cstr) {
-        return writeStr(_Str<Realms::Core::Encoding>(cstr));
+        return writeStr(_Str<Text::Encoding>(cstr));
     }
 
     virtual Res<> writeRune(Rune rune) = 0;
@@ -31,7 +33,7 @@ struct TextWriter : Writer, Flusher {
     Res<> flush() override { return Ok(); }
 };
 
-template <StaticEncoding E = typename Realms::Core::Encoding>
+template <StaticEncoding E = Text::Encoding>
 struct TextEncoderBase : TextWriter {
     using Writer::write;
 
@@ -44,7 +46,7 @@ struct TextEncoderBase : TextWriter {
     }
 };
 
-template <StaticEncoding E = typename Realms::Core::Encoding>
+template <StaticEncoding E = Text::Encoding>
 struct TextEncoder : TextEncoderBase<E> {
     Io::Writer& _writer;
 
@@ -62,7 +64,7 @@ struct TextReader : Reader, Flusher {
     virtual Res<Rune> readRune() = 0;
 };
 
-template <StaticEncoding E = typename Realms::Core::Encoding>
+template <StaticEncoding E = Text::Encoding>
 struct TextDecoderBase : TextReader {
     using Reader::read;
 };
@@ -83,4 +85,4 @@ struct Null : TextWriter, TextReader {
     Res<> flush() override { return Ok(); }
 };
 
-} // namespace Sdk::Io
+} // namespace Realms::Io

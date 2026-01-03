@@ -1,10 +1,14 @@
-#pragma once
+module;
 
-#include <sdk-meta/str.h>
-#include <sdk-meta/vec.h>
-#include <sdk-text/runes.h>
+export module sdk.io:path;
 
-namespace Sdk::Io {
+import sdk;
+import sdk.text;
+
+namespace Realms::Io {
+
+using Meta::Vec;
+using Text::String;
 
 struct Path {
     static constexpr auto sep = '/';
@@ -20,4 +24,4 @@ struct Path {
     usize len() const { return comp.len(); }
 };
 
-} // namespace Sdk::Io
+} // namespace Realms::Io

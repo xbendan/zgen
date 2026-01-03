@@ -1,13 +1,17 @@
-#pragma once
+module;
 
-#include <sdk-io/text.h>
-#include <sdk-text/_defs.h>
-#include <sdk-text/rune.h>
+export module sdk.io:buf;
 
-namespace Sdk::Io {
+import sdk;
+import sdk.text;
+import :text;
 
-using Sdk::Text::Rune;
-using Sdk::Text::StaticEncoding;
+export namespace Realms::Io {
+
+using Meta::Buf;
+using Meta::InlineBuf;
+using Text::Rune;
+using Text::StaticEncoding;
 
 template <StaticEncoding E, usize Len>
 struct _StringBuf;
@@ -18,11 +22,11 @@ struct _StringBuf : Io::TextWriter {
 
     InlineBuf<Unit, Len> _buf {};
 
-    Res<> write(byte b) override {
+    Res<> write([[maybe_unused]] byte b) override {
         return Error::notSupported("StringBuf::write(byte): not supported");
     }
 
-    Res<usize> write(Bytes bytes) override {
+    Res<usize> write([[maybe_unused]] Bytes bytes) override {
         return Error::notSupported("StringBuf::write(Bytes): not supported");
     }
 
@@ -47,7 +51,7 @@ struct _StringBuf : Io::TextWriter {
         if (not E::encodeUnit(rune, one))
             return;
 
-        for (auto unit : foreach (one))
+        for (auto unit : one)
             _buf.insert(_buf.len(), move(unit));
     }
 
@@ -79,11 +83,11 @@ struct _StringBuf<E, 0> : Io::TextWriter {
 
     Buf<Unit> _buf {};
 
-    Res<> write(byte b) override {
+    Res<> write([[maybe_unused]] byte b) override {
         return Error::notSupported("StringBuf::write(byte): not supported");
     }
 
-    Res<usize> write(Bytes bytes) override {
+    Res<usize> write([[maybe_unused]] Bytes bytes) override {
         return Error::notSupported("StringBuf::write(Bytes): not supported");
     }
 
@@ -108,7 +112,7 @@ struct _StringBuf<E, 0> : Io::TextWriter {
         if (not E::encodeUnit(rune, one))
             return;
 
-        for (auto unit : foreach (one))
+        for (auto unit : one)
             _buf.emplace(_buf.len(), move(unit));
     }
 
@@ -137,6 +141,6 @@ struct _StringBuf<E, 0> : Io::TextWriter {
 };
 
 template <usize Len = 0>
-using StringBuf = _StringBuf<Realms::Core::Encoding, Len>;
+using StringBuf = _StringBuf<Text::Encoding, Len>;
 
-} // namespace Sdk::Io
+} // namespace Realms::Io
